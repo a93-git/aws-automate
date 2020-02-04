@@ -3,6 +3,9 @@ import os
 import urllib.request
 import logging
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 #REGION_NAMES = ['Ohio', 'N. Virginia', 'N. California', 'Oregon', 'Mumbai', 'Osaka-Local', 'Seoul', 'Singapore', 'Sydney', 'Tokyo', 'Canada', 'Frankfurt', 'Ireland', 'London', 'Paris', 'Stockholm', 'Sao Paulo']
 #REGION_CODES = ['us-east-2', 'us-east-1', 'us-west-1', 'us-west-2', 'ap-south-1', 'ap-northeast-3', 'ap-northeast-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ca-central-1', 'eu-central-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-north-1', 'sa-east-1']
 #REGIONS = dict(zip(REGION_NAMES, REGION_CODES))
@@ -20,7 +23,7 @@ def tag_resources(tagging_data):
     # Create a dictionary with tag keys and values
     tags = [{'Key': x, 'Value' : y} for x, y in (tagging_data.items())]
 
-    logging.info(tags)
+    logger.info(tags)
     # Create the client for the given region
     ec2_client = boto3.client('ec2', region_name=region)
 
@@ -66,8 +69,8 @@ def lambda_handler(event, context):
                         tagging_data[key] = b[counter]
                         counter = counter + 1
                 except Exception as e:
-                    logging.info("Error occured while retrieving tag values")
-                    logging.error(e)
+                    logger.info("Error occured while retrieving tag values")
+                    logger.error(e)
                 tag_resources(tagging_data)
             else:
                 break
