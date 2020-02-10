@@ -128,4 +128,4 @@ def lambda_handler(event, context):
                     message_instance_details[region].append({instance['InstanceId']: ami_id['ImageId']})
                     
     message_id = send_notification(message_instance_details)
-    logger.info("Message ID for the SNS topic is {0}".format(message_id['MessageId']))
+    logger.info("Message ID is {0}".format(message_id['MessageId']))
