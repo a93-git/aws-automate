@@ -11,6 +11,67 @@ Output_S3_Key_Prefix_Windows - S3 bucket folder name inside the above bucket for
 Output_S3_Key_Prefix_Linux - S3 bucket folder name inside the above bucket for Windows instances
 SNS_Topic - ARN of the SNS topic that will send the notification (failure or success of the SSM command)
 CW_Log_Group_Name - Cloudwatch log group name to save the output of the Lambda function
+
+** Set the timeout in basic settings to 5 minutes
+
+Create and attach the following policies to the Lambda execution role:
+
+**** NOTE: We still need to fix all the IAM policies required ****
+
+// SNS Publish policy (fill in your ARN)
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "sns:Publish",
+            "Resource": "<replace with SNS topic ARN>"
+        }
+    ]
+}
+
+// EC2 describe instances and tags
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeInstances",
+                "ec2:DescribeTags"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+
+// SSM allow describe instance information
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "ssm:DescribeInstanceInformation",
+            "Resource": "*"
+        }
+    ]
+}
+
+// IAM passrole
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "arn:aws:iam::630125610951:role/service-role/s247_2-role-4549fa1l"
+        }
+    ]
+}
 """
 
 import boto3
