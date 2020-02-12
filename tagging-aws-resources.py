@@ -1,3 +1,14 @@
+"""
+Tags the EC2 instances according to the information provided in a csv file.
+
+We need to provide the following environment variables (in the Lambda function):
+csv_url - url of the csv file
+
+Invocation:
+This is a python script to be used as a Lambda function (not supposed to be 
+invoked on its own)
+"""
+
 import boto3
 import os
 import urllib.request
@@ -16,12 +27,27 @@ with open('/tmp/csv_data.csv', 'wb') as f:
     f.write(DATA.read())
 
 def tag_resources(tagging_data):
-    print(tagging_data)
+    """ Tags the EC2 instances according to the tagging data provided
+
+    Tagging data is a single line from the csv file containing the instance id 
+    and region of the instance along with the tag keys and their corresponding 
+    value
+
+    Positional arguments:
+    tagging_data -- a single line from the csv file containing the tagging data
+
+    Keyword arguments:
+    -- None --
+
+    Returns: 
+    None
+    """
+#    print(tagging_data)
     instance_id = tagging_data.pop('instance_id')
     region = tagging_data.pop('region')
 
     # Create a dictionary with tag keys and values
-    tags = [{'Key': x, 'Value' : y} for x, y in (tagging_data.items())]
+    tags = [{'Key': x, 'Value': y} for x, y in (tagging_data.items())]
 
     logger.info(tags)
     # Create the client for the given region
@@ -50,8 +76,7 @@ def lambda_handler(event, context):
 
     # Tag keys and values are retrieved on the fly, no need to hardcode
     with open('/tmp/csv_data.csv', 'r', newline=newline) as f:
-
-        # Get the headers of the file
+        # Get the header of the file
         headers = f.readline()
         if headers:
             tag_keys = [x.strip() for x in headers.split(',')]
