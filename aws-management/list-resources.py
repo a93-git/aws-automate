@@ -2,6 +2,7 @@
 
 import boto3
 import json
+import getsession
 
 REGION_NAMES = ['Ohio', 'N. Virginia', 'N. California', 'Oregon', 'Mumbai', 'Osaka-Local', 'Seoul', 'Singapore', 'Sydney', 'Tokyo', 'Canada', 'Frankfurt', 'Ireland', 'London', 'Paris', 'Stockholm', 'Sao Paulo']
 REGION_CODES = ['us-east-2', 'us-east-1', 'us-west-1', 'us-west-2', 'ap-south-1', 'ap-northeast-3', 'ap-northeast-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ca-central-1', 'eu-central-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-north-1', 'sa-east-1']
@@ -10,9 +11,24 @@ REGIONS = dict(zip(REGION_NAMES, REGION_CODES))
 class EC2Info():
     """Create an object to get EC2 data"""
 
-    def __init__(self):
+    def __init__(self, external_id, role_arn, duration_seconds=900, role_session_name='default'):
         """ Create the client and initialize the object """
         self.instance_info = {}
+        self.external_id = external_id
+        self.role_arn = role_arn
+        self.duration_seconds = duration_seconds
+        self.role_session_name = role_session_name
+
+    def get_access_token(self):
+        creds = getsession.GetSession().get_session_data(
+            self.external_id, 
+            self.role_arn,
+            duration_seconds=self.duration_seconds,
+            role_session_name=self.role_session_name)
+        if 'None' in creds:
+            return None
+        else:
+            return creds
 
     def get_data(self, client_ec2, region):
         """ Retrieve the information about the EC2 instances in a given region
@@ -102,9 +118,9 @@ class EC2Info():
 
         return json.dumps(self.instance_info, indent=4)
 
-if __name__ == '__main__':
-    ec2_obj = EC2Info()
-    retval = ec2_obj.get_ec2_info()
+# if __name__ == '__main__':
+#     ec2_obj = EC2Info()
+#     retval = ec2_obj.get_ec2_info()
 
-    with open('testec2info.json', 'w') as f:
-        f.write(retval)
+#     with open('testec2info.json', 'w') as f:
+#         f.write(retval)
