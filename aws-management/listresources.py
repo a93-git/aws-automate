@@ -54,7 +54,6 @@ class EC2Info():
                 }
             }
         }
-
         """
 
         retval = {'Instances': {}}
@@ -105,10 +104,11 @@ class EC2Info():
         
         """
 
+        creds = self.get_access_token()
         for region in REGIONS.values():
             self.instance_info[region] = {}
             try:
-                client_ec2 = boto3.client('ec2', region_name=region)
+                client_ec2 = boto3.client('ec2', region_name=region, aws_access_key_id=creds[0], aws_secret_access_key=creds[1], aws_session_token=creds[2])
                 retval = self.get_data(client_ec2, region)
                 self.instance_info[region] = retval
             except boto3.exceptions.botocore.client.ClientError as e:
