@@ -14,6 +14,7 @@ SNS_Topic - ARN of the SNS topic that will send the notification (failure or suc
 CW_Log_Group_Name - Cloudwatch log group name to save the output of the Lambda function
 Role_ARN - ARN of the AWS role to assume (in the customer's account)
 External_Id - An alphanumeric string configured as an added security measure
+SNS_Topic_SQS - Deliver message to SQS
 
 ** Set the timeout in basic settings to 5 minutes
 """
@@ -24,6 +25,7 @@ import os
 import logging
 import datetime
 import time
+import json
 
 REGION_NAMES = ['Ohio', 'N. Virginia', 'N. California', 'Oregon', 'Mumbai', 'Osaka-Local', 'Seoul', 'Singapore', 'Sydney', 'Tokyo', 'Canada', 'Frankfurt', 'Ireland', 'London', 'Paris', 'Stockholm', 'Sao Paulo']
 REGION_CODES = ['us-east-2', 'us-east-1', 'us-west-1', 'us-west-2', 'ap-south-1', 'ap-northeast-3', 'ap-northeast-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ca-central-1', 'eu-central-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-north-1', 'sa-east-1']
@@ -89,6 +91,11 @@ class Site24x7Installer():
         self.client_ssm = boto3.client('ssm', region_name=region, aws_access_key_id=creds[0], aws_secret_access_key=creds[1], aws_session_token=creds[2])
         self.client_ec2 = boto3.client('ec2', region_name=region, aws_access_key_id=creds[0], aws_secret_access_key=creds[1], aws_session_token=creds[2])
         self.client_s3 = boto3.client('s3', aws_access_key_id=creds[0], aws_secret_access_key=creds[1], aws_session_token=creds[2])
+        
+        # SQS needs to be in the same region as the Lambda function
+        client_session = boto3.session.Session()
+        region_sqs = client_session.region_name
+        self.client_sqs = boto3.client('sqs', region_name=region_sqs, aws_access_key_id=creds[0], aws_secret_access_key=creds[1], aws_session_token=creds[2])
 
         # Get a list of all the EC2 instances with the given tag key and value
         self.ec2_data = self.client_ec2.describe_instances(
@@ -192,8 +199,8 @@ class Site24x7Installer():
                 logger.info("EC2 instance {0} in region {1} is in {2} state".format(x[0], self.region, x[1]))
                 message[self.region].append({x[0]: "EC2 instance in {0} state".format(x[1])})
 
-    def _create_event_for_lambda(self):
-        """ Loops through the _return_values list and creates an event for next Lambda
+    def _create_message_for_sqs(self):
+        """ Loops through the _return_values list and creates an event for SQS
 
         Arguments:
         None
@@ -254,7 +261,7 @@ def lambda_handler(event, context):
                 logger.info("Error in installing Site24x7 agent in region {0}".format(region))
                 logger.error(e)
                 message[region] = "Error occured in installing Site24x7 agents in this region"
-            o = a._create_event_for_lambda()
+            o = a._create_message_for_sqs()
             if o is not None:
                 temp_var.append(o)
 
@@ -263,10 +270,10 @@ def lambda_handler(event, context):
             logger.error(e)
     
     for val in temp_var:
-        sns_arn = os.environ['SNS_Topic_Lambda']
-        subject = 'Message for Lambda'
+        sns_arn = os.environ['SNS_Topic_SQS']
+        subject = 'Message for SQS'
         send_notification(val, sns_arn, subject)
-
+    
     sns_arn = os.environ['SNS_Topic']
     subject = "Site24x7 agent installation details on {0}".format(datetime.datetime.now().strftime("%Y-%m-%d"))
     message_id = send_notification(message, sns_arn, subject)
