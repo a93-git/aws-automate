@@ -10,6 +10,7 @@ Boto3 scripts to automate repetitive tasks in AWS
 3. Get the list of running processes on an instance (Linux or Windows)
 4. Take AMI backup of all the EC2 instances in the given AWS account and send the notification email
 5. Scheduled stop/start of EC2 and RDS instances that match a given tag (need to set up a cron job)
+6. Cross account installation of Site24x7
 
 ## TODO
 1. Fix the auto start/stop script for Lambda function
