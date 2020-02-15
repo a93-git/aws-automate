@@ -253,7 +253,7 @@ def lambda_handler(event, context):
         logger.error("Security credentials couldn't be retrieved. Exiting...")
         exit()
 
-    temp_var = []
+    # temp_var = []
     for region in REGIONS.values():
         try:
             try:
