@@ -16,7 +16,9 @@ Role_ARN - ARN of the AWS role to assume (in the customer's account)
 External_Id - An alphanumeric string configured as an added security measure
 SNS_Topic_SQS - Deliver message to SQS
 
-** Set the timeout in basic settings to 5 minutes
+Note:
+    ** Set the timeout in basic settings to 5 minutes
+    ** S3 bucket and the cloudwatch log group are in the Customer's account
 """
 
 
@@ -199,33 +201,33 @@ class Site24x7Installer():
                 logger.info("EC2 instance {0} in region {1} is in {2} state".format(x[0], self.region, x[1]))
                 message[self.region].append({x[0]: "EC2 instance in {0} state".format(x[1])})
 
-    def _create_message_for_sqs(self):
-        """ Loops through the _return_values list and creates an event for SQS
+    # def _create_message_for_sqs(self):
+    #     """ Loops through the _return_values list and creates an event for SQS
 
-        Arguments:
-        None
+    #     Arguments:
+    #     None
 
-        Return:
-        A list with only required information about the return values
-        """
-        a = []
-        for retval in self._return_values:
-            b = {}
-            _flow = False
-            try:
-                b['bucket_name'] = retval['Command']['OutputS3BucketName']
-                b['command_id'] = retval['Command']['CommandId']
-                b['prefix'] = retval['Command']['OutputS3KeyPrefix']
-                b['instance_id'] = retval['Command']['Targets'][0]['Values'][0]
-                b['script_name'] = retval['Command']['DocumentName']
-                _flow = True
-                a.append(b)
-            except Exception as e:
-                logger.info('Error in putting ACL')
-                logger.info('Incomplete information')
-                logger.error(e)
+    #     Return:
+    #     A list with only required information about the return values
+    #     """
+    #     a = []
+    #     for retval in self._return_values:
+    #         b = {}
+    #         _flow = False
+    #         try:
+    #             b['bucket_name'] = retval['Command']['OutputS3BucketName']
+    #             b['command_id'] = retval['Command']['CommandId']
+    #             b['prefix'] = retval['Command']['OutputS3KeyPrefix']
+    #             b['instance_id'] = retval['Command']['Targets'][0]['Values'][0]
+    #             b['script_name'] = retval['Command']['DocumentName']
+    #             _flow = True
+    #             a.append(b)
+    #         except Exception as e:
+    #             logger.info('Error in putting ACL')
+    #             logger.info('Incomplete information')
+    #             logger.error(e)
             
-        return a
+    #     return a
 
 def send_notification(message, sns_arn, subject):
     """ Send SNS notification"""
@@ -261,18 +263,22 @@ def lambda_handler(event, context):
                 logger.info("Error in installing Site24x7 agent in region {0}".format(region))
                 logger.error(e)
                 message[region] = "Error occured in installing Site24x7 agents in this region"
-            o = a._create_message_for_sqs()
-            if o is not None:
-                temp_var.append(o)
+            # o = a._create_message_for_sqs()
+            # if o is not None:
+            #     temp_var.append(o)
 
         except Exception as e:
             logger.info("Error in sending SNS notification to Lambda")
             logger.error(e)
     
-    for val in temp_var:
-        sns_arn = os.environ['SNS_Topic_SQS']
-        subject = 'Message for SQS'
-        send_notification(val, sns_arn, subject)
+    # for val in temp_var:
+    #     # sns_arn = os.environ['SNS_Topic_Lambda']
+    #     # subject = 'Message for Lambda'
+    #     # send_notification(val, sns_arn, subject)
+    #     # if 'bucket_name' in val.keys() and 'command_id' in val.keys() and 'prefix' in val.keys() and 'instance_id' in val.keys() and 'script_name' in val.keys():
+    #     sns_arn = os.environ['SNS_Topic_SQS']
+    #     subject = 'Message for SQS'
+    #     send_notification(val, sns_arn, subject)
     
     sns_arn = os.environ['SNS_Topic']
     subject = "Site24x7 agent installation details on {0}".format(datetime.datetime.now().strftime("%Y-%m-%d"))
