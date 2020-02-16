@@ -11,11 +11,14 @@ External_Id = External ID required for authentication
 Status_Bucket = Bucket in which the status file is stored
 Status_Object_Key = Object key of the status file
 
-TODO IAM policy for the Lambda
+** Set the timeout to 2 mins in the Basic settings section
 
+TODO IAM policy for the Lambda
+TODO Regex for old instance id format
 
 // Run the following AWS CLI command to add a statement to the SNS access policy 
 in the Customer's account
+// Note the SNS topic and the S3 bucket need to be in the same region
 
 aws sns add-permission \
   --label <name for this policy statement> \
@@ -104,10 +107,12 @@ def update_s3_object(bucket_name, object_key, message):
     if get_status_file['ResponseMetadata']['HTTPStatusCode'] == 200:
         streaming_body = get_status_file['Body']
         a = streaming_body.read().decode('utf-8')
-        with open('test.txt', 'a+') as f:
-            f.write(a)
-            f.write(message)
-    ret = client_s3_status.put_object(Bucket=bucket_name, Key=object_key)
+        with open('/tmp/test.txt', 'w+') as f:
+            f.write(a) # Write the old content back
+            f.write('\n') # Insert a newline
+            f.write(message) # Write the new content
+    f = open('/tmp/test.txt', 'rb') # Open a file object in byte mode
+    ret = client_s3_status.put_object(Bucket=bucket_name, Body=f, Key=object_key)
     if ret['ResponseMetadata']['HTTPStatusCode'] == 200:
         logger.info("Successfully updated the status file")
     else:
@@ -124,7 +129,7 @@ def lambda_handler(event, context):
         logger.warning("Creds provided: {0}".format(creds))
         exit()
 
-    pat = re.compile(r'\bi-[0-9a-z]{17}\b')
+    pat = re.compile(r'\bi-[0-9a-z]{17}\b') # Regex for Instance id; TODO new regex for old instance id format
     for record in event['Records']:
         status = 'failed'
         m = json.loads(record['Sns']['Message'])
