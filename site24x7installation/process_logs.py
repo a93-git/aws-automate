@@ -45,7 +45,7 @@ SNS topic
 // Note that the following command needs to be run in the Master account (even 
 though the SNS topic is in the Customer's account)
 // Also the region _has_ to be the region in which the SNS topic exists in the
-master account
+Customer's account
 
 aws sns subscribe \
   --protocol lambda \
