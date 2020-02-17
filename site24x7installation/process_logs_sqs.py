@@ -34,7 +34,7 @@ TODO Regex for old instance id format
       "Sid": "Sid1581937356422",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::<master account ID>:root"
+        "AWS": "arn:aws:iam:<master account ID>:root"
       },
       "Action": "SQS:*",
       "Resource": "<ARN of the SQS queue>"
@@ -43,7 +43,7 @@ TODO Regex for old instance id format
       "Sid": "Stmt1581936608643",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "<Lambda role ARN for the function in Master account>"
+        "AWS": "<Lambda ROLE ARN for the function in Master account>"
       },
       "Action": "sqs:*",
       "Resource": "ARN of the SQS queue"
@@ -55,7 +55,7 @@ TODO Regex for old instance id format
         "Service": "events.amazonaws.com"
       },
       "Action": "sqs:SendMessage",
-      "Resource": "<ARN of the SQS queue",
+      "Resource": "<ARN of the SQS queue>",
       "Condition": {
         "ArnEquals": {
           "aws:SourceArn": "<ARN of the Cloudwatch Rule>"
