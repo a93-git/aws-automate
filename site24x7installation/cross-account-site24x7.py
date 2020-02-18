@@ -11,14 +11,13 @@ Output_S3_Bucket - S3 bucket to store the output of the SSM command
 Output_S3_Key_Prefix_Windows - S3 bucket folder name inside the above bucket for Windows instances
 Output_S3_Key_Prefix_Linux - S3 bucket folder name inside the above bucket for Windows instances
 SNS_Topic - ARN of the SNS topic that will send the notification (failure or success of the SSM command)
-CW_Log_Group_Name - Cloudwatch log group name to save the output of the Lambda function
+// No need to provide CW_Log_Group_Name - Cloudwatch log group name to save the output of the Lambda function
 Role_ARN - ARN of the AWS role to assume (in the customer's account)
 External_Id - An alphanumeric string configured as an added security measure
 SNS_Topic_SQS - Deliver message to SQS
 
 Note:
     ** Set the timeout in basic settings to 5 minutes
-    ** S3 bucket and the cloudwatch log group are in the Customer's account
 """
 
 
@@ -76,7 +75,7 @@ class Site24x7Installer():
     output_s3_bucket_name = os.environ['Output_S3_Bucket']
     output_s3_key_prefix_linux = os.environ['Output_S3_Key_Prefix_Linux']
     output_s3_key_prefix_windows = os.environ['Output_S3_Key_Prefix_Windows']
-    cw_log_group_name = os.environ['CW_Log_Group_Name']
+#    cw_log_group_name = os.environ['CW_Log_Group_Name']
 
     def __init__(self, region, creds):
         """ Instantiate the class, create ssm and ec2 clients and fetch the ec2 data for given tag keys and values
@@ -127,10 +126,10 @@ class Site24x7Installer():
                 },
                 OutputS3BucketName=self.output_s3_bucket_name,
                 OutputS3KeyPrefix=output_s3_key_prefix,
-                CloudWatchOutputConfig={
-                    'CloudWatchLogGroupName': self.cw_log_group_name,
-                    'CloudWatchOutputEnabled': True
-                }
+                # CloudWatchOutputConfig={
+                #     'CloudWatchLogGroupName': self.cw_log_group_name,
+                #     'CloudWatchOutputEnabled': True
+                # }
             )
             
             return retval
