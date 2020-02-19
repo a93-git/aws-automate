@@ -9,7 +9,7 @@ Tag_Key - Tag key to look for
 Tag_Value - Tag value for the corresponding Tag_Key
 Output_S3_Bucket - S3 bucket to store the output of the SSM command
 Output_S3_Key_Prefix_Windows - S3 bucket folder name inside the above bucket for Windows instances
-Output_S3_Key_Prefix_Linux - S3 bucket folder name inside the above bucket for Windows instances
+Output_S3_Key_Prefix_Linux - S3 bucket folder name inside the above bucket for Linux instances
 SNS_Topic - ARN of the SNS topic that will send the notification (failure or success of the SSM command)
 // No need to provide CW_Log_Group_Name - Cloudwatch log group name to save the output of the Lambda function
 Role_ARN - ARN of the AWS role to assume (in the customer's account)
