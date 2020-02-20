@@ -1,0 +1,18 @@
+{
+    "Version": "2012-10-17",
+    "Id": "s3bucketpolicy",
+    "Statement": [
+        {
+            "Sid": "customer1",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::<account_number>:root"
+            },
+            "Action": [
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+            ],
+            "Resource": "arn:aws:s3:::<bucket_name>/<optional_prefix>/*"
+        }
+    ]
+}
