@@ -44,6 +44,7 @@ L - done
 
 import datetime
 import calendar
+import time
 
 FIELDS = ['Minutes', 'Hours', 'DoM', 'Month', 'DoW', 'Year']
 VALUES = [[list(range(60)), ',', '-', '*', '/'], [list(range(24)), ',', '-', '*', '/'], [list(range(1, 32)), ',', '-', '*', '?', '/', 'L', 'W'], [dict(zip(range(1, 13), ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'])), ',', '-', '*', '/'], [dict(zip(range(1-8), ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'])), ',', '-', '*', '?', 'L', '#'], list(range(1970, 2200))]
@@ -100,7 +101,8 @@ class CronParser():
             return minute
         except:
             if self._expression_field_values['Minutes'] == '*':
-                minute.append(datetime.datetime.utcnow().minute)
+                for i in list(range(datetime.datetime.utcnow().minute, 60)):
+                    minute.append(i)
                 # minute = datetime.datetime.utcnow().minute
                 # return minute[0]
                 return minute
@@ -139,7 +141,8 @@ class CronParser():
             return hour
         except:
             if self._expression_field_values['Hours'] == '*':
-                hour.append(datetime.datetime.utcnow().hour)
+                for i in list(range(datetime.datetime.utcnow().hour, 24)):
+                    hour.append(i)
                 # return hour[0]
                 return hour
             else:
@@ -286,7 +289,8 @@ class CronParser():
             return month
         except:
             if self._expression_field_values['Month'] == '*':
-                month.append(datetime.datetime.utcnow().month)
+                for i in list(range(datetime.datetime.utcnow().month, 13)):
+                    month.append(i)
                 # return month[0]
                 return month
             # Check if the below condition is required or already fulfilled by the try block
@@ -396,7 +400,7 @@ class CronParser():
                 # Find the _nth _day_of_week in a month e.g. 2nd Friday
                 a = self._expression_field_values['DoW'].split('#')
                 _aws_day_of_week = int(a[0])
-                _nth = a[1]
+                _nth = int(a[1]) - 1
                 _day_today = datetime.datetime.utcnow()
                 _month_calendar = calendar.monthcalendar(year, month)
 
@@ -408,8 +412,8 @@ class CronParser():
 
                 o = []
                 for val in _month_calendar:
-                    if val[_calendar_day_of_week] != 0: # 0 is a placeholder in the calendar output for days of week that don't belong to the current month
-                            o.append()
+                    if int(val[_calendar_day_of_week]) != 0: # 0 is a placeholder in the calendar output for days of week that don't belong to the current month
+                            o.append(int(val[_calendar_day_of_week]))
 
                 if o[_nth] > _day_today.day:
                     return o[_nth]
@@ -425,7 +429,7 @@ class CronParser():
                     o = []
                     for val in _month_calendar:
                         if val[_calendar_day_of_week] != 0: # 0 is a placeholder in the calendar output for days of week that don't belong to the current month
-                                o.append()
+                                o.append(val[_calendar_day_of_week])
                     return o[_nth]
             else:
                 for i in self._expression_field_values['DoW'].split(','):
@@ -500,8 +504,17 @@ class CronParser():
             for m in month:
                 for h in hour:
                     for m2 in minute:
-                        for d in self.dom_parser(m, y):
-                            print('{0}-{1}-{2} {3}:{4}'.format(y, m, d, h, m2))
+                        i = self.dom_parser(m, y)
+                        if i == '':
+                            dow = self.dow_parser(m, y)
+                            # for d in dow:
+                            if datetime.datetime.strptime('{0}-{1}-{2} {3}:{4}'.format(y, m, dow, h, m), r'%Y-%m-%d %H:%M') < datetime.datetime.utcnow():
+                                continue
+                            else:
+                                print('{0}-{1}-{2} {3}:{4}'.format(y, m, dow, h, m2))
+                        else:
+                            for d in self.dom_parser(m, y):
+                                print('{0}-{1}-{2} {3}:{4}'.format(y, m, d, h, m2))
 
         # dom = self.dom_parser(month[0], year[0])
         # dow = self.dow_parser()
@@ -520,6 +533,11 @@ class CronParser():
         # print('DoW: {0}'.format(dow))
 
 if __name__ == '__main__':
-    # a = CronParser('4-10/3 0-4,6/6 * * ? *')
-    # a = CronParser('4-10/3 0-4,6/6 31W 5 ? *')
+    # a = CronParser()
+    _time = time.time()
+
+    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022']
+    a = CronParser('30 0 ? */2 6#2 2020-2022')
     a.create_next_run_value()
+
+    print('Total time of execution is {0} seconds'.format(time.time() - _time))
