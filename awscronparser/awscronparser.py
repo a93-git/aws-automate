@@ -8,13 +8,12 @@ From the doc:
 
 TODO Validate cron expression
 TODO Docstring
-TODO '?' wildcard in DOM and DOW
 
 Minutes parser - done
 Hours parser - done
 DoM - done
 Month - done
-DoW - ++ Not started yet ++
+DoW - done
 Year - done
 
 Various weekday numbers referenced throughout the parser:
@@ -32,14 +31,6 @@ convert from calendar module weekday to aws (not perfect but works for now):
 for Mon - Sat - calendarday + 2
 for Sun - calendarday  - 5
 
-1-7 - done
-SUN-SAT - done
-, - done
-- - done
-* - done
-? - done
-L - done
-# - done
 """
 
 import datetime
@@ -56,9 +47,8 @@ DAYS_NUMBER = dict(zip(DAYS, range(1, 8)))
 
 
 class CronParser():
-    """
+    """Returns the runtimes for the provided cron expression"""
 
-    """
     def __init__(self, cron_expression):
         """ Takes a cron expression as argument to initialize the object and extracts the field values
 
@@ -74,7 +64,8 @@ class CronParser():
             self.expression = cron_expression.strip()
             self._expression_field_values = dict(zip(FIELDS, self.expression.split(' ')))
 
-    def _check_dom_dotw(self, dom, dotw):
+    
+    def _check_dom_dotw(self):
         """ Checks if both Day-of-month field and the Day-of-the-week fields have been specified
 
         Arguments:
@@ -84,12 +75,16 @@ class CronParser():
         Return:
         True if it doesn't match else False
         """
-        if dom != '?' or dotw != '?':
+        if self._expression_field_values['DoM'] != '?' or self._expression_field_values['DoW'] != '?':
             print("Out of DoM and DotW, one field must be '?'. Both can't be specified in the same expression")
+            return False
+        elif self._expression_field_values['DoM'] == '?' and self._expression_field_values['DoW'] == '?':
+            print("Out of DoM and DotW, one must be assigned a value. Both can't be '?'")
             return False
         else:
             True
 
+    
     def minute_parser(self):
         """ Returns a list of minute values in the cron expression"""
 
@@ -131,6 +126,7 @@ class CronParser():
                 # return minute[0]
                 return minute
 
+    
     def hour_parser(self):
         """ Returns a list of hour values as per the cron expression"""
 
@@ -174,6 +170,7 @@ class CronParser():
                 # return hour[0]
                 return hour
 
+    
     def dom_parser(self, month, year=datetime.datetime.utcnow().year):
         """ Returns a list of DoM values in the cron expression
         
@@ -275,6 +272,7 @@ class CronParser():
                 # return dom[0]
                 return dom
 
+    
     def month_parser(self):
         """ Returns a list of month values as per the cron expression
 
@@ -343,6 +341,7 @@ class CronParser():
                 # return month[0]
                 return month
 
+    
     def dow_parser(self, month=None, year=None):
         """ Returns a list of DoW values in the cron expression
         
@@ -461,6 +460,7 @@ class CronParser():
             # return dow[0]
             return dow
         
+    
     def year_parser(self):
         """ Returns a list of year values as per the cron expression"""
 
@@ -496,50 +496,46 @@ class CronParser():
                 # return year[0]
                 return year
 
+    
     def create_next_run_value(self):
-        minute = self.minute_parser()
-        hour = self.hour_parser()
-        month = self.month_parser()
-        year = self.year_parser()
+        if self._check_dom_dotw():
+            minute = self.minute_parser()
+            hour = self.hour_parser()
+            month = self.month_parser()
+            year = self.year_parser()
 
-        for y in year:
-            for m in month:
-                for h in hour:
-                    for m2 in minute:
-                        i = self.dom_parser(m, y)
-                        if i == '':
-                            dow = self.dow_parser(m, y)
-                            # for d in dow:
-                            if datetime.datetime.strptime('{0}-{1}-{2} {3}:{4}'.format(y, m, dow, h, m), r'%Y-%m-%d %H:%M') < datetime.datetime.utcnow():
-                                continue
+            for y in year:
+                for m in month:
+                    for h in hour:
+                        for m2 in minute:
+                            i = self.dom_parser(m, y)
+                            if i == '':
+                                dow = self.dow_parser(m, y)
+                                # for d in dow:
+                                if type(dow) is list:
+                                    for d in dow:
+                                        if datetime.datetime.strptime('{0}-{1}-{2} {3}:{4}'.format(y, m, d, h, m), r'%Y-%m-%d %H:%M') < datetime.datetime.utcnow():
+                                            continue
+                                        else:
+                                            print('{0}-{1}-{2} {3}:{4}'.format(y, m, d, h, m2))
+                                else:
+                                    if datetime.datetime.strptime('{0}-{1}-{2} {3}:{4}'.format(y, m, dow, h, m), r'%Y-%m-%d %H:%M') < datetime.datetime.utcnow():
+                                        continue
+                                    else:
+                                        print('{0}-{1}-{2} {3}:{4}'.format(y, m, dow, h, m2))
                             else:
-                                print('{0}-{1}-{2} {3}:{4}'.format(y, m, dow, h, m2))
-                        else:
-                            for d in self.dom_parser(m, y):
-                                print('{0}-{1}-{2} {3}:{4}'.format(y, m, d, h, m2))
+                                for d in self.dom_parser(m, y):
+                                    print('{0}-{1}-{2} {3}:{4}'.format(y, m, d, h, m2))
+        else:
+            print('Cron expression is not valid')
 
-        # dom = self.dom_parser(month[0], year[0])
-        # dow = self.dow_parser()
-
-        # _time_string = "{0}-{1}-{2}-{3}-{4}".format(year, month, dom, hour, minute)
-        # _format_string = '%Y-%m-%d-%H-%M'
-        # next_run_time = datetime.datetime.strptime(_time_string, _format_string)
-
-        # print(next_run_time)
-
-        # print('Minute: {0}'.format(minute))
-        # print('Hour: {0}'.format(hour))
-        # print('Month: {0}'.format(month))
-        # print('Year: {0}'.format(year))
-        # print('DoM: {0}'.format(dom))
-        # print('DoW: {0}'.format(dow))
 
 if __name__ == '__main__':
     # a = CronParser()
     _time = time.time()
 
     cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022', '30 0 ? */2 6#2 2020-2022']
-    a = CronParser('30 0 ? */2 6#2 2020-2022')
+    a = CronParser('30 0 ? */2 ? 2020-2022')
     a.create_next_run_value()
 
     print('Total time of execution is {0} seconds'.format(time.time() - _time))
