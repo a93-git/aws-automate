@@ -312,7 +312,9 @@ class CronParser():
                         k = j[0].split('-')
                         try:
                             if len(j) > 1:
-                                if len(k) > 1:
+                                if j[0] == '*':
+                                    l = range(1, 13, int(j[1]))
+                                elif len(k) > 1:
                                     l = range(int(k[0]), int(k[1])+1, int(j[1]))
                                 else:
                                     l = range(int(k[0]), 2*int(k[0]) + 1, int(j[1]))
@@ -536,7 +538,7 @@ if __name__ == '__main__':
     # a = CronParser()
     _time = time.time()
 
-    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022']
+    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022', '30 0 ? */2 6#2 2020-2022']
     a = CronParser('30 0 ? */2 6#2 2020-2022')
     a.create_next_run_value()
 
