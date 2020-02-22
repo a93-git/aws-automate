@@ -69,20 +69,19 @@ class CronParser():
         """ Checks if both Day-of-month field and the Day-of-the-week fields have been specified
 
         Arguments:
-        dom - Day-of-month field value
-        dotw - Day-of-the-week field value
+        None
 
         Return:
         True if it doesn't match else False
         """
-        if self._expression_field_values['DoM'] != '?' or self._expression_field_values['DoW'] != '?':
+        if self._expression_field_values['DoM'] != '?' and self._expression_field_values['DoW'] != '?':
             print("Out of DoM and DotW, one field must be '?'. Both can't be specified in the same expression")
             return False
         elif self._expression_field_values['DoM'] == '?' and self._expression_field_values['DoW'] == '?':
             print("Out of DoM and DotW, one must be assigned a value. Both can't be '?'")
             return False
         else:
-            True
+            return True
 
     
     def minute_parser(self):
@@ -498,6 +497,7 @@ class CronParser():
 
     
     def create_next_run_value(self):
+        print(self._check_dom_dotw())
         if self._check_dom_dotw():
             minute = self.minute_parser()
             hour = self.hour_parser()
@@ -534,8 +534,8 @@ if __name__ == '__main__':
     # a = CronParser()
     _time = time.time()
 
-    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022', '30 0 ? */2 6#2 2020-2022']
-    a = CronParser('30 0 ? */2 ? 2020-2022')
+    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022', '30 0 ? */2 6#2 2020-2022', '30 0 ? */2 ? 2020-2022', '30 0 ? */2 5 2020-2022']
+    a = CronParser('30 0 ? */2 4-6 2020-2022')
     a.create_next_run_value()
 
     print('Total time of execution is {0} seconds'.format(time.time() - _time))
