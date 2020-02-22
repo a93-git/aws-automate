@@ -440,10 +440,35 @@ class CronParser():
                         try:
                             if len(k) > 1:
                                 l = range(int(k[0]), int(k[1])+1)
+
+#             SUN	MON	TUE	WED	THU	FRI	SAT
+# aws	        1	2	3	4	5	6	7
+# calendar	    6	0	1	2	3	4	5
+                                _cal_month = calendar.monthcalendar(year, month)
+
+                                for week in _cal_month:
+                                    for i in l:
+                                        if i != 1:
+                                            if week[i-2] != 0:
+                                                dow.append(week[i-2])
+                                        else:
+                                            if week[6] != 0:
+                                                dow.append(week[6])
                             else:
                                 l = range(int(k[0]), 2 * int(k[0]) + 1)
-                            for i in list(l):
-                                dow.append(i)
+
+                                _cal_month = calendar.monthcalendar(year, month)
+
+                                for week in _cal_month:
+                                    for i in l:
+                                        if i != 1:
+                                            if week[i-2] != 0:
+                                                dow.append(week[i-2])
+                                        else:
+                                            if week[6] != 0:
+                                                dow.append(week[6])
+                                # for i in list(l):
+                                #     dow.append(i)
                         except:
                             try:
                                 # String day of week range
@@ -534,8 +559,8 @@ if __name__ == '__main__':
     # a = CronParser()
     _time = time.time()
 
-    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022', '30 0 ? */2 6#2 2020-2022', '30 0 ? */2 ? 2020-2022', '30 0 ? */2 5 2020-2022']
-    a = CronParser('30 0 ? */2 4-6 2020-2022')
+    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022', '30 0 ? */2 6#2 2020-2022', '30 0 ? */2 ? 2020-2022', '30 0 ? */2 5 2020-2022', '30 0 ? */8 6#2 2020-2022']
+    a = CronParser('30 0 ? */8 6#2 2020-2022')
     a.create_next_run_value()
 
     print('Total time of execution is {0} seconds'.format(time.time() - _time))
