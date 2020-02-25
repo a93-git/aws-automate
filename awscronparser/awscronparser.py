@@ -355,8 +355,22 @@ class CronParser():
 
         dow = []
         try:
-            dow.append(int(self._expression_field_values['DoW']))
+            # dow.append(int(self._expression_field_values['DoW']))
             # return dow[0]
+            _dow_val = int(self._expression_field_values['DoW'])
+
+#             SUN	MON	TUE	WED	THU	FRI	SAT
+# aws	        1	2	3	4	5	6	7
+# calendar	    6	0	1	2	3	4	5
+            _cal_month = calendar.monthcalendar(year, month)
+
+            for week in _cal_month:
+                if _dow_val != 1:
+                    if week[_dow_val-2] != 0:
+                        dow.append(week[_dow_val-2])
+                else:
+                    if week[6] != 0:
+                        dow.append(week[6])
             return dow
         except:
             if self._expression_field_values['DoW'] == '*':
@@ -561,8 +575,8 @@ if __name__ == '__main__':
     # a = CronParser()
     _time = time.time()
 
-    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022', '30 0 ? */2 6#2 2020-2022', '30 0 ? */2 ? 2020-2022', '30 0 ? */2 5 2020-2022', '30 0 ? */8 6#2 2020-2022']
-    a = CronParser('30 0 ? */8 6#2 */94')
+    cron_expressions = ['4-10/3 0-4,6/6 * * ? *', '0 0-4,6/6 3W 4 ? *', '0 0 ? 5 6#3 *', '0 0 ? * 6#2 *', '30 0 ? 4-8 6#2 *', '30 0 ? * 6#2 2020-2022', '30 0 ? */2 6#2 2020-2022', '30 0 ? */2 ? 2020-2022', '30 0 ? */2 5 2020-2022', '30 0 ? */8 6#2 2020-2022', '30 0 ? */8 6#2 */94', '0 0 ? * 5 *']
+    a = CronParser('0 0 ? * * *')
     a.create_next_run_value()
 
     print('Total time of execution is {0} seconds'.format(time.time() - _time))
