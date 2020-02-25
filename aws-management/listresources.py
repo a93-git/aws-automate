@@ -72,7 +72,10 @@ class EC2Info():
                     retval['Instances'][instance['InstanceId']]['PublicIpAddress'] = "None"
                 retval['Instances'][instance['InstanceId']]['InstanceState'] = instance['State']['Name']
                 retval['Instances'][instance['InstanceId']]['InstanceType'] = instance['InstanceType']
-                retval['Instances'][instance['InstanceId']]['PrivateIpAddress'] = instance['PrivateIpAddress']
+                if 'PrivateIpAddress' in instance.keys():
+                    retval['Instances'][instance['InstanceId']]['PrivateIpAddress'] = instance['PrivateIpAddress']
+                else:
+                    retval['Instances'][instance['InstanceId']]['PrivateIpAddress'] = "None"
         return retval
 
     def get_ec2_info(self):
@@ -117,6 +120,19 @@ class EC2Info():
                 raise
 
         return json.dumps(self.instance_info, indent=4)
+
+class S3Info(object):
+    pass
+
+class RDSInfo(object):
+    pass
+
+class LambdaInfo(object):
+    pass
+
+class DynamoDBInfo(object):
+    pass
+
 
 # if __name__ == '__main__':
 #     ec2_obj = EC2Info()
