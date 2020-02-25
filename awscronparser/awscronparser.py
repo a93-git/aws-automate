@@ -374,8 +374,19 @@ class CronParser():
             return dow
         except:
             if self._expression_field_values['DoW'] == '*':
-                dow.append(datetime.datetime.isoweekday(datetime.datetime.utcnow()))
+                # dow.append(datetime.datetime.isoweekday(datetime.datetime.utcnow()))
                 # return dow[0]
+
+#             SUN	MON	TUE	WED	THU	FRI	SAT
+# aws	        1	2	3	4	5	6	7
+# calendar	    6	0	1	2	3	4	5
+                _cal_month = calendar.monthcalendar(year, month)
+
+                for week in _cal_month:
+                    for i in week:
+                        if i != 0:
+                            dow.append(i)
+
                 return dow
             # Check if the below condition is required or already fulfilled by the try block
             elif self._expression_field_values['DoW'] in ALLOWED_VALUES['DoW'][0].keys():
