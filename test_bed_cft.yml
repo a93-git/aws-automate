@@ -19,3 +19,22 @@ Parameters:
     Description: Instance type for Linux instance types
     ConstraintDescription: Must be a valid EC2 instance type
     Type: String
+  SSHLocation:
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: must be a valid IPv4 CIDR range of the form x.x.x.x/x
+    Default: 0.0.0.0/0
+    Description: IP range allowed to SSH to this EC2 instance
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+  RDPLocation:
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: must be a valid IPv4 CIDR range of the form x.x.x.x/x
+    Default: 0.0.0.0/0
+    Description: IP range allowed to RDP to this EC2 instance
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+Resources:
+  RHELInstance1:
+    Type: AWS::EC2::Instance
