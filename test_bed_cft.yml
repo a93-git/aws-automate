@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation Template to launch 10 VMs in the current region'
+Parameters:
+  KeyName:
+    ConstraintDescription: must be the name of an existing EC2 Keypair in this region
+    Description: Name of a KeyPair that already exists in this region
+    Type: AWS::EC2::KeyPair::KeyName
+  InstanceTypeWindows:
+    AllowedValues:
+      - t3.large
+    Default: t3.large
+    Description: Instance type for Windows instance types
+    ConstraintDescription: Must be a valid EC2 instance type
+    Type: String
+  InstanceTypeLinux:
+    AllowedValues:
+      - t2.micro
+    Default: t2.micro
+    Description: Instance type for Linux instance types
+    ConstraintDescription: Must be a valid EC2 instance type
+    Type: String
