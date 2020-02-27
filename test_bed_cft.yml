@@ -7,8 +7,8 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
   InstanceTypeWindows:
     AllowedValues:
-      - t3.large
-    Default: t3.large
+      - t3.xlarge
+    Default: t3.xlarge
     Description: Instance type for Windows instance types
     ConstraintDescription: Must be a valid EC2 instance type
     Type: String
@@ -35,6 +35,45 @@ Parameters:
     Type: String
     MinLength: '9'
     MaxLength: '18'
+Mappings:
+  AWSInstanceType2Arch:
+    t2.micro:
+      Arch: HVM64
+    t3.xlarge:
+      Arch: HVM64
+  AWSRegionArch2AMI:
+    ap-northeast-1:
+      HVM64: ami-0af1df87db7b650f4
+    ap-northeast-2:
+      HVM64: ami-0a93a08544874b3b7
+    ap-southeast-1:
+      HVM64: ami-0f02b24005e4aec36
+    ap-southeast-2:
+      HVM64: ami-0fad060fc1dafbad1
+    us-east-2:
+      HVM64: ami-0e38b48473ea57778
+    us-east-1:
+      HVM64: ami-0a887e401f7654935
+    us-west-1:
+      HVM64: ami-042171985f9a813af
+    us-west-2:
+      HVM64: ami-0c24523f82c0eb7d2
+    ap-south-1:
+      HVM64: ami-0d9462a653c34dab7
+    ca-central-1:
+      HVM64: ami-014f55f965f51c865
+    eu-central-1:
+      HVM64: ami-0df0e7600ad0913a9
+    eu-west-1:
+      HVM64: ami-0d4d506696fe4baf8
+    eu-west-2:
+      HVM64: ami-0389b2a3c4948b1a0
+    eu-west-3:
+      HVM64: ami-0fd9bce3a3384b635
+    eu-north-1:
+      HVM64: ami-0fab3541efaecf61a
+    sa-east-1:
+      HVM64: ami-080a223be3de0c3b8
 Resources:
-  RHELInstance1:
+  Instance1:
     Type: AWS::EC2::Instance
