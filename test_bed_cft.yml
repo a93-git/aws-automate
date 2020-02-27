@@ -77,3 +77,39 @@ Mappings:
 Resources:
   Instance1:
     Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap 
+        - AWSRegionArch2AMI
+        - !Ref 'AWS::Region'
+        - !FindInMap
+          - AWSInstanceType2Arch
+          - !Ref InstanceTypeWindows
+          - Arch
+      InstanceType:
+        Ref: InstanceTypeWindows
+      KeyName:
+        Ref: KeyName
+      SecurityGroups:
+        Ref: CommonSecurityGroup
+      UserData:
+        Fn::Base64:
+          #!/bin/bash -xe
+          yum update -y
+          sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          yum install mariadb mariadb-server -y
+          nsystemctl start mariadb
+          systemctl enable mariadb
+  CommonSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow SSH and RDP access to the VM"
+      SecurityGroupIngress:
+        - CidrIp: !Ref SSHLocation
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: tcp
+        - CidrIp: !Ref RDPLocation
+          FromPort: '3389'
+          ToPort: '3389'
+          IpProtocol: tcp
+  
