@@ -128,20 +128,20 @@ Resources:
       Roles:
         -
           Ref: "SSMRole"
-    SSMRole:
-      Type: AWS::IAM::Role
-      Properties:
-        Description: Role for EC2 instance profile
-        ManagedPolicyArns:
-          - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
-        AssumeRolePolicyDocument:
-          Version: 2012-10-17
-          Statememnt:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - ec2.amazonaws.com
-                Action:
-                  - 'sts:AssumeRole'
-        MaxSessionDuration: 3600
-        RoleName: ssmrole
+  SSMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Role for EC2 instance profile
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statememnt:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+      MaxSessionDuration: 3600
+      RoleName: ssmrole
