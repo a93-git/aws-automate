@@ -56,8 +56,15 @@ def lambda_handler(event, context):
             for instance_data in region_data:
                 for instance in instance_data.keys():
                     ssm_command_id = instance_data[instance]
+                    _count = 0
                     while not (check_ssm_command_status(ssm_command_id, client_ssm)):
                         time.sleep(10)
+                        if _count < 12:
+                            _count += 1
+                        else:
+                            logging.info('Couldn\'t verify the status of command id {0}'.format(ssm_command_id))
+                            break
+                    logging.info('Command ID {0} execution finished'.format(ssm_command_id))
     except:
         logger.info('Error in parsing command information')
 
