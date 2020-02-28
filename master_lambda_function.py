@@ -7,6 +7,10 @@ Set the timeout according to the normal time of execution of all the Lambda func
 TODO Implement a state function - tracks the current state of execution of all the four Lambda functions
 TODO Check for remaining execution time on a regular interval
 TODO If timeout occurs, call subsequent Lambda function with current state
+
+Note: Now we need to add the following policy to the cross-account-role in Customer's environment
+
+ssm:GetInvocationStatus
 """
 
 import boto3
@@ -16,6 +20,10 @@ import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+AGENT_NAMES = ["Site24x7", "DesktopCentral", "TrendMicro", "Commvault"]
+FUNCTION_NAMES = ["x_account_site247_installer", "x_account_dc_installer", "x_account_dsm_installer", "x_account_commvault_installer"]
+AGENT2FUNCTION = dict(zip(AGENT_NAMES, FUNCTION_NAMES))
 
 def get_temp_creds(role_arn, external_id):
     """ Retrieve temporary security credentials
@@ -51,56 +59,86 @@ def check_ssm_command_status(ssm_command_id, instance, client_ssm):
     else:
         return False
 
+def get_lambda_payload():
+    """ Read the lambda payload file"""
+
+    logging.info("Attempting to read the file...")
+    with open("./master_lambda_input.json", "r") as f:
+        a = f.read()
+    
+    try:
+        return json.loads(a)
+    except Exception as e:
+        logging.info("Can't read the payload file")
+        logging.error(e)
+        logging.info("Nothing to do. Exiting the lambda execution now.")
+        exit()
+    
 def lambda_handler(event, context):
+
+    _time = time.time()
+
     # Retrieve the current region name
     client_session = boto3.session.Session()
     region = client_session.region_name
 
-    # Payload to be passed on by the Cloudwatch rule
-    _payload = '{ "Activation_Key": "eu_1b673cc3b4bc93137f5a3a2655d9df23", "Role_ARN": "arn:aws:iam::879633881541:role/swo_x_account_role", "Output_S3_Bucket": "swo-agent-logs", "Output_S3_Key_Prefix_Windows": "customer4/commvault/windows", "Output_S3_Key_Prefix_Linux": "customer4/commvault/linux", "Tag_Key": "swoMonitor", "Tag_Value": "1", "External_Id": "57a2d9d9-37f0-4435-aadf-1257142f2bcc", "SNS_Topic": "arn:aws:sns:ap-southeast-1:205041875266:lambda_notification" }'
-    _payload = _payload.encode()
+    _payload = get_lambda_payload()
 
     client_lambda = boto3.client('lambda', region_name=region)
 
-    role_arn = "arn:aws:iam::879633881541:role/swo_x_account_role"
-    external_id = "57a2d9d9-37f0-4435-aadf-1257142f2bcc"
+    _master_lambda_data = _payload.get('MasterLambda')
+    _payload.pop("MasterLambda")
+    
+    role_arn = _master_lambda_data.get('Role_ARN')
+    external_id = _master_lambda_data.get('External_Id')
     creds = get_temp_creds(role_arn, external_id)
 
-    res = client_lambda.invoke(
-        FunctionName='x_account_site247_installer',
-        InvocationType='RequestResponse',
-        Payload=_payload,
-        )
-    
-    streaming_body = res['Payload']
-    retval = json.loads(streaming_body.read().decode('utf-8'))
+    for agent in _payload.keys():
+        _agent_data = json.dumps(_payload.get(agent)).encode()
+        function_name = AGENT2FUNCTION[agent]
 
-    try:
+        res = client_lambda.invoke(
+            FunctionName=function_name,
+            InvocationType='RequestResponse',
+            Payload=_agent_data
+            )
+        
+        streaming_body = res['Payload']
+        retval = json.loads(streaming_body.read().decode('utf-8'))
+
         for region in retval.keys():
             client_ssm = boto3.client('ssm', 
                 region_name=region, 
                 aws_access_key_id=creds[0], 
                 aws_secret_access_key=creds[1], 
                 aws_session_token=creds[2])
-            region_data = retval.get(region)
-            if type(region_data) is list:
-                for instance_data in region_data:
-                    if type(instance_data) is dict:
-                        for instance in instance_data.keys():
-                            ssm_command_id = instance_data.get(instance)
-                            _count = 0
-                            while not (check_ssm_command_status(ssm_command_id, instance, client_ssm)):
-                                time.sleep(10)
-                                if _count < 12:
-                                    _count += 1
-                                else:
-                                    logging.info('Couldn\'t verify the status of command id {0}'.format(ssm_command_id))
-                                    break
-                            logging.info('Command ID {0} execution finished'.format(ssm_command_id))
-    except Exception as e:
-        logger.info('Error in parsing command information')
-        logger.error(e)
 
-    remaining_time = context.get_remaining_time_in_millis()
+            region_data = retval.get(region)
+
+            try:
+                if type(region_data) is list:
+                    for instance_data in region_data:
+                        if type(instance_data) is dict:
+                            for instance in instance_data.keys():
+                                ssm_command_id = instance_data.get(instance)
+                                _count = 0
+                                while not (check_ssm_command_status(ssm_command_id, instance, client_ssm)):
+                                    time.sleep(10)
+                                    if _count < 12:
+                                        _count += 1
+                                    else:
+                                        logging.info('Couldn\'t verify the status of command id {0}'.format(ssm_command_id))
+                                        break
+                                logging.info('Command ID {0} execution finished'.format(ssm_command_id))
+            except Exception as e:
+                logger.info('Error in parsing information for region {0}'.format(region))
+                logger.error(e)
+
+        remaining_time = context.get_remaining_time_in_millis()
+
+        if remaining_time < 60000:
+            logging.info("Out of time")
+            logging.info("Invoking next instance of Lambda function")
+            logging.info("Exit")
 
     return remaining_time
