@@ -5,11 +5,23 @@ No environment variables (as of now)
 Set the timeout according to the normal time of execution of all the Lambda function
 
 TODO Implement a state function - tracks the current state of execution of all the four Lambda functions
+TODO Check for remaining execution time on a regular interval
 TODO If timeout occurs, call subsequent Lambda function with current state
 """
 
 import boto3
 import json
+import time
+
+def check_ssm_command_status(ssm_command_id, client_ssm):
+    response = client_ssm.get_command_invocation(
+        CommandId=ssm_command_id
+    )
+
+    if response['Status'] is 'TimedOut' or response['Status'] is 'Success' or response['Status'] is 'Failed':
+        return True
+    else:
+        return False
 
 def lambda_handler(event, context):
     remaining_time = context.get_remaining_time_in_millis()
@@ -23,6 +35,7 @@ def lambda_handler(event, context):
     _payload = _payload.encode()
 
     client_lambda = boto3.client('lambda', region_name=region)
+    client_ssm = boto3.client('ssm', region_name=region)
 
     res = client_lambda.invoke(
         FunctionName='x_account_site247_installer',
@@ -32,5 +45,17 @@ def lambda_handler(event, context):
     
     streaming_body = res['Payload']
     retval = streaming_body.read().decode('utf-8')
-    print("Response is: {0}".format(retval))
+
+    try:
+        for region in retval.keys():
+            region_data = retval[region]
+            for instance_data in region_data:
+                for instance in instance_data.keys():
+                    ssm_command_id = instance_data[instance]
+                    while not (check_ssm_command_status(ssm_command_id, client_ssm)):
+                        time.sleep(10)
+    except:
+        # logger.info('Error in parsing command information')
+        pass
+
     return remaining_time
