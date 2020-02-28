@@ -15,7 +15,7 @@
         "Output_S3_Bucket": "swo-agent-logs",
         "Output_S3_Key_Prefix_Windows": "customer4/commvault/windows",
         "Output_S3_Key_Prefix_Linux": "customer4/commvault/linux",
-        "Tag_Key": "swoAntiMalware",
+        "Tag_Key": "swoPatch",
         "Tag_Value": "1",
         "Username": "admin",
         "Password": "admin",
