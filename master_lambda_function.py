@@ -12,6 +12,10 @@ TODO If timeout occurs, call subsequent Lambda function with current state
 import boto3
 import json
 import time
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def check_ssm_command_status(ssm_command_id, client_ssm):
     response = client_ssm.get_command_invocation(
@@ -55,7 +59,6 @@ def lambda_handler(event, context):
                     while not (check_ssm_command_status(ssm_command_id, client_ssm)):
                         time.sleep(10)
     except:
-        # logger.info('Error in parsing command information')
-        pass
+        logger.info('Error in parsing command information')
 
     return remaining_time
