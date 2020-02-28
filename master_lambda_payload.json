@@ -1,0 +1,56 @@
+{
+	"Site24x7": {
+		"Activation_Key": "eu_1b673cc3b4bc93137f5a3a2655d9df23",
+		"Role_ARN": "arn:aws:iam::879633881541:role/swo_x_account_role",
+		"Output_S3_Bucket": "swo-agent-logs",
+		"Output_S3_Key_Prefix_Windows": "customer4/commvault/windows",
+		"Output_S3_Key_Prefix_Linux": "customer4/commvault/linux",
+		"Tag_Key": "swoMonitor",
+		"Tag_Value": "1",
+		"External_Id": "57a2d9d9-37f0-4435-aadf-1257142f2bcc",
+		"SNS_Topic": "arn:aws:sns:ap-southeast-1:205041875266:lambda_notification"
+	},
+	"DesktopCentral": {
+        "Role_ARN": "arn:aws:iam::879633881541:role/swo_x_account_role",
+        "Output_S3_Bucket": "swo-agent-logs",
+        "Output_S3_Key_Prefix_Windows": "customer4/commvault/windows",
+        "Output_S3_Key_Prefix_Linux": "customer4/commvault/linux",
+        "Tag_Key": "swoAntiMalware",
+        "Tag_Value": "1",
+        "Username": "admin",
+        "Password": "admin",
+        "Remote_Office_Id": "903",
+        "External_Id": "57a2d9d9-37f0-4435-aadf-1257142f2bcc",
+        "SNS_Topic": "arn:aws:sns:ap-southeast-1:205041875266:lambda_notification",
+        "Script_Url_Linux": "https://swomccpublicdev.blob.core.windows.net/desktop-central/DC-Azure-Linux.sh",
+        "Script_Url_Windows": "https://swomccpublicdev.blob.core.windows.net/desktop-central/DC-Azure-Windows.ps1"
+    },
+	"TrendMicro": {
+        "Group_ID": "88",
+        "Role_ARN": "arn:aws:iam::879633881541:role/swo_x_account_role",
+        "Output_S3_Bucket": "swo-agent-logs",
+        "Output_S3_Key_Prefix_Windows": "customer4/commvault/windows",
+        "Output_S3_Key_Prefix_Linux": "customer4/commvault/linux",
+        "Tag_Key": "swoAntiMalware",
+        "Tag_Value": "1",
+        "External_Id": "57a2d9d9-37f0-4435-aadf-1257142f2bcc",
+        "SNS_Topic": "arn:aws:sns:ap-southeast-1:205041875266:lambda_notification",
+        "Script_Url_Linux": "https://swomccpublicdev.blob.core.windows.net/trendmicro/New-AWS-Linux-Trend.sh",
+        "Script_Url_Windows": "https://swomccpublicdev.blob.core.windows.net/trendmicro/New-AWS-Windows-Trend.ps1"
+    },
+	"Commvault": {
+        "Activation_Key": "BF98BB27",
+        "Role_ARN": "arn:aws:iam::879633881541:role/swo_x_account_role",
+        "Output_S3_Bucket": "swo-agent-logs",
+        "Output_S3_Key_Prefix_Windows": "customer4/commvault/windows",
+        "Output_S3_Key_Prefix_Linux": "customer4/commvault/linux",
+        "Tag_Key": "swoBackup",
+        "Tag_Value": "1",
+        "External_Id": "57a2d9d9-37f0-4435-aadf-1257142f2bcc",
+        "SNS_Topic": "arn:aws:sns:ap-southeast-1:205041875266:lambda_notification",
+        "Package_Url_Linux": "https://swomccpublicdev.blob.core.windows.net/commvault/LinuxCore.tar",
+        "Package_Url_Windows": "https://swomccpublicdev.blob.core.windows.net/commvault/WindowsCore.exe",
+        "Script_Url_Linux": "https://swomccpublicdev.blob.core.windows.net/commvault/Linux.sh",
+        "Script_Url_Windows": "https://swomccpublicdev.blob.core.windows.net/commvault/Windows.ps1"
+    }
+}
