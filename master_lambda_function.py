@@ -17,6 +17,7 @@ import boto3
 import json
 import time
 import logging
+import re
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -24,6 +25,8 @@ logger.setLevel(logging.INFO)
 AGENT_NAMES = ["Site24x7", "DesktopCentral", "TrendMicro", "Commvault"]
 FUNCTION_NAMES = ["x_account_site247_installer", "x_account_dc_installer", "x_account_dsm_installer", "x_account_commvault_installer"]
 AGENT2FUNCTION = dict(zip(AGENT_NAMES, FUNCTION_NAMES))
+
+SSM_COMMAND_PATTERN = re.compile(r'\b([a-z0-9]+-){4}[a-z0-9]{12}\b')
 
 def get_temp_creds(role_arn, external_id):
     """ Retrieve temporary security credentials
@@ -121,15 +124,17 @@ def lambda_handler(event, context):
                         if type(instance_data) is dict:
                             for instance in instance_data.keys():
                                 ssm_command_id = instance_data.get(instance)
-                                _count = 0
-                                while not (check_ssm_command_status(ssm_command_id, instance, client_ssm)):
-                                    time.sleep(10)
-                                    if _count < 12:
-                                        _count += 1
-                                    else:
-                                        logging.info('Couldn\'t verify the status of command id {0}'.format(ssm_command_id))
-                                        break
-                                logging.info('Command ID {0} execution finished'.format(ssm_command_id))
+                                match = re.fullmatch(SSM_COMMAND_PATTERN, ssm_command_id)
+                                if match:
+                                    _count = 0
+                                    while not (check_ssm_command_status(ssm_command_id, instance, client_ssm)):
+                                        time.sleep(10)
+                                        if _count < 12:
+                                            _count += 1
+                                        else:
+                                            logging.info('Couldn\'t verify the status of command id {0}'.format(ssm_command_id))
+                                            break
+                                    logging.info('Command ID {0} execution finished'.format(ssm_command_id))
             except Exception as e:
                 logger.info('Error in parsing information for region {0}'.format(region))
                 logger.error(e)
