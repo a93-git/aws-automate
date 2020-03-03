@@ -91,8 +91,8 @@ class DesktopCentralInstaller():
         self.username = event['Username']
         self.password = event['Password']
         self.remote_office_id = event['Remote_Office_Id']
-        self.script_url_linux = event['Script_URL_Linux']
-        self.script_url_windows = event['Script_URL_Windows']
+        self.script_url_linux = event['Script_Url_Linux']
+        self.script_url_windows = event['Script_Url_Windows']
         # Get a list of all the EC2 instances with the given tag key and value
         self.ec2_data = self.client_ec2.describe_instances(
             Filters= [
