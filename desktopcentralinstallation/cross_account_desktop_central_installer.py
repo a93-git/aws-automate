@@ -93,15 +93,21 @@ class DesktopCentralInstaller():
         self.remote_office_id = event['Remote_Office_Id']
         self.script_url_linux = event['Script_Url_Linux']
         self.script_url_windows = event['Script_Url_Windows']
+
+        self.tag2remote = dict(zip(self.tag_key, self.remote_office_id))
         # Get a list of all the EC2 instances with the given tag key and value
-        self.ec2_data = self.client_ec2.describe_instances(
-            Filters= [
-                {
-                    'Name': "tag:{0}".format(self.tag_key),
-                    'Values': [self.tag_value]
-                }
-            ]
-        )
+        self.ec2_data = {}
+        for val in self.tag2remote.keys():
+            self.ec2_data[val] = self.client_ec2.describe_instances(
+                Filters= [
+                    {
+                        'Name': "tag:{0}".format(self.tag_key),
+                        'Values': [val]
+                    }
+                ]
+            )
+
+        print(self.ec2_data)
 
     def send_command(self, instance_id, command, document_name, output_s3_key_prefix):
         try:
@@ -140,56 +146,58 @@ class DesktopCentralInstaller():
 
     def install_agent(self):
         message[self.region] = []
-        ec2_matching = []
 
-        for reservation in self.ec2_data['Reservations']:
-            for instance in reservation['Instances']:
-                if 'Platform' in instance.keys():
-                    ec2_matching.append((instance['InstanceId'], instance['Platform'], instance['State']['Name']))
-                else:
-                    ec2_matching.append((instance['InstanceId'], instance['State']['Name']))
-        
-        for x in ec2_matching:
-            if len(x) == 3:
-                if x[2] == 'running':
-                    if x[1] == 'windows':
-                        document_name = 'AWS-RunPowerShellScript'
-                        output_s3_key_prefix = self.output_s3_key_prefix_windows
-                        command = "Invoke-WebRequest -Uri " + self.script_url_windows + " -OutFile C:/Windows.ps1; C:/windows.ps1 " + self.username + " " + self.password + " " + self.remote_office_id
-                        instance_id = x[0]
-                        if self.check_ssm_status(instance_id):
-                            retval = self.send_command(instance_id, command, document_name, output_s3_key_prefix)
-                            if retval:
-                                message[self.region].append({instance_id: retval['Command']['CommandId']})
-                                self._return_values.append(retval)
-                            else:
-                                message[self.region].append({instance_id: "Error in installing Desktop Central agent. SSM send command failed."})
-                        else:
-                            logger.info("Skipping instance id {0} as SSM agent is not installed".format(instance_id))
-                            message[self.region].append({instance_id: "SSM agent not installed"})
-                else:
-                    logger.info("EC2 instance {0} is in {1} state".format(x[0], x[2]))
-                    message[self.region].append({x[0]: "EC2 instance in {0} state".format(x[2])})
-            elif x[1] == 'running':
-                document_name = 'AWS-RunShellScript'
-                output_s3_key_prefix = self.output_s3_key_prefix_linux
-                
-                command = "curl -o /tmp/dc_agent.sh " + self.script_url_linux + "; sudo sed -i 's/\r//' /tmp/dc_agent.sh; chmod +x /tmp/dc_agent.sh; /bin/bash /tmp/dc_agent.sh " + self.username + " " + self.password + " " + self.remote_office_id
-                print("Command is {0}".format(command))
-                instance_id = x[0]
-                if self.check_ssm_status(instance_id):
-                    retval = self.send_command(instance_id, command, document_name, output_s3_key_prefix)
-                    if retval:
-                        message[self.region].append({instance_id: retval['Command']['CommandId']})
-                        self._return_values.append(retval)
+        for key in self.ec2_data.keys():
+            ec2_matching = []
+
+            for reservation in self.ec2_data[key]:
+                for instance in reservation['Instances']:
+                    if 'Platform' in instance.keys():
+                        ec2_matching.append((instance['InstanceId'], instance['Platform'], instance['State']['Name']))
                     else:
-                        message[self.region].append({instance_id: "Error in installing Desktop Central agent"})
+                        ec2_matching.append((instance['InstanceId'], instance['State']['Name']))
+            
+            for x in ec2_matching:
+                if len(x) == 3:
+                    if x[2] == 'running':
+                        if x[1] == 'windows':
+                            document_name = 'AWS-RunPowerShellScript'
+                            output_s3_key_prefix = self.output_s3_key_prefix_windows
+                            command = "Invoke-WebRequest -Uri " + self.script_url_windows + " -OutFile C:/Windows.ps1; C:/windows.ps1 " + self.username + " " + self.password + " " + self.tag2remote[key]
+                            instance_id = x[0]
+                            if self.check_ssm_status(instance_id):
+                                retval = self.send_command(instance_id, command, document_name, output_s3_key_prefix)
+                                if retval:
+                                    message[self.region].append({instance_id: retval['Command']['CommandId']})
+                                    self._return_values.append(retval)
+                                else:
+                                    message[self.region].append({instance_id: "Error in installing Desktop Central agent. SSM send command failed."})
+                            else:
+                                logger.info("Skipping instance id {0} as SSM agent is not installed".format(instance_id))
+                                message[self.region].append({instance_id: "SSM agent not installed"})
+                    else:
+                        logger.info("EC2 instance {0} is in {1} state".format(x[0], x[2]))
+                        message[self.region].append({x[0]: "EC2 instance in {0} state".format(x[2])})
+                elif x[1] == 'running':
+                    document_name = 'AWS-RunShellScript'
+                    output_s3_key_prefix = self.output_s3_key_prefix_linux
+                    
+                    command = "curl -o /tmp/dc_agent.sh " + self.script_url_linux + "; sudo sed -i 's/\r//' /tmp/dc_agent.sh; chmod +x /tmp/dc_agent.sh; /bin/bash /tmp/dc_agent.sh " + self.username + " " + self.password + " " + self.tag2remote[key]
+                    print("Command is {0}".format(command))
+                    instance_id = x[0]
+                    if self.check_ssm_status(instance_id):
+                        retval = self.send_command(instance_id, command, document_name, output_s3_key_prefix)
+                        if retval:
+                            message[self.region].append({instance_id: retval['Command']['CommandId']})
+                            self._return_values.append(retval)
+                        else:
+                            message[self.region].append({instance_id: "Error in installing Desktop Central agent"})
+                    else:
+                        logger.info("Skipping instance id {0} in region {1} as SSM agent is not installed".format(instance_id, self.region))
+                        message[self.region].append({instance_id: "SSM agent not installed"})
                 else:
-                    logger.info("Skipping instance id {0} in region {1} as SSM agent is not installed".format(instance_id, self.region))
-                    message[self.region].append({instance_id: "SSM agent not installed"})
-            else:
-                logger.info("EC2 instance {0} in region {1} is in {2} state".format(x[0], self.region, x[1]))
-                message[self.region].append({x[0]: "EC2 instance in {0} state".format(x[1])})
+                    logger.info("EC2 instance {0} in region {1} is in {2} state".format(x[0], self.region, x[1]))
+                    message[self.region].append({x[0]: "EC2 instance in {0} state".format(x[1])})
 
 
 def send_notification(message, sns_arn, subject):
