@@ -2,29 +2,6 @@
 
 ** SSM agent needs to be installed on all the instances where we want to install the agent**
 
-No environment variables need to be configured. The information required for the 
-invocation of the Lambda function is provided by the 'Configure Input' option of the CW Rule
-
-The JSON input format is:
-
-{
-	"MaintenanceWindowTagValue": "<maintenanceWindowTagValue",
-	"MaintenanceWindowTagKey": "<maintenanceWindowTagKey>",
-	"Activation_Key": "<activationKey>",
-	"RoleARN": "<roleArnCustomerAccount>",
-	"Output_S3_Bucket": "<bucketNameMasterAccount>",
-	"Output_S3_Key_Prefix_Windows": "<folderPrefix>",
-	"Output_S3_Key_Prefix_Linux": "<folderPrefix>",
-	"Tag_Key": "<backupTagKey>",
-	"Tag_Value": "<backupTagValue>",
-	"External_Id": "<externalId>",
-	"SNS_Topic": "<snsTopicArnMasterAccount>",
-	"Package_Url_Linux": "<urlForLinuxPackage>",
-	"Package_Url_Windows": "<urlForWindowsPackage>",
-	"Script_Url_Linux": "<linuxInstallationScriptURL>",
-	"Script_Url_Windows": "<linuxInstallationScriptURL>"
-}
-
 """
 
 
@@ -101,8 +78,6 @@ class CommvaultInstaller():
         self.output_s3_bucket_name = event['Output_S3_Bucket']
         self.output_s3_key_prefix_windows = event['Output_S3_Key_Prefix_Windows']
         self.output_s3_key_prefix_linux = event['Output_S3_Key_Prefix_Linux']
-        self.maintenance_window = event['MaintenanceWindowTagKey']
-        self.maintenance_window_val = event['MaintenanceWindowTagValue']
 
         # Get a list of all the EC2 instances with the given tag key and value
         self.ec2_data = self.client_ec2.describe_instances(
@@ -110,10 +85,6 @@ class CommvaultInstaller():
                 {
                     'Name': "tag:{0}".format(self.tag_key),
                     'Values': [self.tag_value]
-                },
-                {
-                    'Name': "tag:{0}".format(self.maintenance_window),
-                    'Values': [self.maintenance_window_val]
                 }
             ]
         )
@@ -253,8 +224,7 @@ def send_notification(message, sns_arn, subject):
 
 def lambda_handler(event, context):
     _time = time.time()
-    
-    role_arn = event['RoleARN']
+    role_arn = event['Role_ARN']
     external_id = event['External_Id']
 
     creds = get_temp_creds(role_arn, external_id)
@@ -281,4 +251,5 @@ def lambda_handler(event, context):
     message_id = send_notification(message, sns_arn, subject)
     logger.info("Message ID is {0}".format(message_id['MessageId']))
 
-    return "Total execution time: {0} seconds".format(time.time() - _time)
+    logger.info("Total execution time: {0} seconds".format(time.time() - _time))
+    return message
