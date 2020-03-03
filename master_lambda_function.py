@@ -52,6 +52,7 @@ def get_temp_creds(role_arn, external_id):
         return (None, None, None)
 
 def check_ssm_command_status(ssm_command_id, instance, client_ssm):
+    logger.info('Checking status of command id {0}'.format(ssm_command_id))
     response = client_ssm.get_command_invocation(
         CommandId=ssm_command_id,
         InstanceId=instance
