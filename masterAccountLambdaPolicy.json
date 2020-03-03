@@ -2,7 +2,7 @@
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "cwloggroup",
+            "Sid": "cwLogGroup",
             "Action": [
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
@@ -12,18 +12,31 @@
             "Resource": "*"
         },
         {
-            "Sid": "snspublish",
+            "Sid": "snsPublish",
             "Effect": "Allow",
             "Action": "sns:Publish",
-            "Resource": "arn:aws:sns:<region>:<account_number>:<master_topic_name>"
+            "Resource": "<snsTopicARN>"
         },
         {
-            "Sid": "crossaccountassumerole",
+            "Sid": "xAccountAssumeRole",
             "Action": [
                 "sts:AssumeRole"
             ],
             "Effect": "Allow",
-            "Resource": "arn:aws:iam::<customer_account_number>:role/<customer_role_name>"
-        }        
+            "Resource": "*"
+        },
+        {
+            "Sid": "invokeLambda",
+            "Effect": "Allow",
+            "Action": [
+                "lambda:InvokeFunction"
+            ],
+            "Resource": [
+                "<Func1ARN>",
+                "<Func2ARN>",
+                "<Func3ARN>",
+                "<Func4ARN>"
+            ]
+        }
     ]
 }
