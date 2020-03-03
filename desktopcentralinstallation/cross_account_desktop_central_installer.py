@@ -169,7 +169,7 @@ class DesktopCentralInstaller():
                                 message[self.region].append({instance_id: retval['Command']['CommandId']})
                                 self._return_values.append(retval)
                             else:
-                                message[self.region].append({instance_id: "Error in installing DSM agent. SSM send command failed."})
+                                message[self.region].append({instance_id: "Error in installing Desktop Central agent. SSM send command failed."})
                         else:
                             logger.info("Skipping instance id {0} as SSM agent is not installed".format(instance_id))
                             message[self.region].append({instance_id: "SSM agent not installed"})
@@ -230,9 +230,9 @@ def lambda_handler(event, context):
                 a = DesktopCentralInstaller(region, creds)
                 a.install_agent()
             except Exception as e:
-                logger.info("Error in installing DSM agent in region {0}".format(region))
+                logger.info("Error in installing Desktop Central agent in region {0}".format(region))
                 logger.error(e)
-                message[region] = "Error occured in installing DSM agents in this region"
+                message[region] = "Error occured in installing Desktop Central agents in this region"
         except Exception as e:
             logger.info("Error in Lambda execution")
             logger.error(e)
