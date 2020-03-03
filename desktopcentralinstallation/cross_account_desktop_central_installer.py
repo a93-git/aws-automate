@@ -242,4 +242,5 @@ def lambda_handler(event, context):
     message_id = send_notification(message, sns_arn, subject)
     logger.info("Message ID is {0}".format(message_id['MessageId']))
 
-    return "Total execution time: {0} seconds".format(time.time() - _time)
+    logger.info("Total execution time: {0} seconds".format(time.time() - _time))
+    return message
