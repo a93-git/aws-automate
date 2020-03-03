@@ -42,10 +42,6 @@ REGIONS = dict(zip(REGION_NAMES, REGION_CODES))
 
 message = {}
 
-role_arn = os.environ['Role_ARN']
-external_id = os.environ['External_Id']
-
-
 def get_temp_creds(role_arn, external_id):
     """ Retrieve temporary security credentials
 
@@ -70,21 +66,8 @@ def get_temp_creds(role_arn, external_id):
         return (None, None, None)
 
 class DesktopCentralInstaller():
-
-    tag_key = os.environ['Tag_Key']
-    tag_value = os.environ['Tag_Value']
-    document_version = '$LATEST'
-    timeout_seconds = 120
-    output_s3_bucket_name = os.environ['Output_S3_Bucket']
-    output_s3_key_prefix_linux = os.environ['Output_S3_Key_Prefix_Linux']
-    output_s3_key_prefix_windows = os.environ['Output_S3_Key_Prefix_Windows']
-    username = os.environ['Username']
-    password = os.environ['Password']
-    remote_office_id = os.environ['Remote_Office_Id']
-    script_url_linux = os.environ['Script_URL_Linux']
-    script_url_windows = os.environ['Script_URL_Windows']
     
-    def __init__(self, region, creds):
+    def __init__(self, region, creds, event):
         """ Instantiate the class, create ssm and ec2 clients and fetch the ec2 data for given tag keys and values
 
         Arguments:
@@ -98,7 +81,18 @@ class DesktopCentralInstaller():
         self.region = region
         self.client_ssm = boto3.client('ssm', region_name=region, aws_access_key_id=creds[0], aws_secret_access_key=creds[1], aws_session_token=creds[2])
         self.client_ec2 = boto3.client('ec2', region_name=region, aws_access_key_id=creds[0], aws_secret_access_key=creds[1], aws_session_token=creds[2])
-
+        self.tag_key = event['Tag_Key']
+        self.tag_value = event['Tag_Value']
+        self.document_version = '$LATEST'
+        self.timeout_seconds = 120
+        self.output_s3_bucket_name = event['Output_S3_Bucket']
+        self.output_s3_key_prefix_linux = event['Output_S3_Key_Prefix_Linux']
+        self.output_s3_key_prefix_windows = event['Output_S3_Key_Prefix_Windows']
+        self.username = event['Username']
+        self.password = event['Password']
+        self.remote_office_id = event['Remote_Office_Id']
+        self.script_url_linux = event['Script_URL_Linux']
+        self.script_url_windows = event['Script_URL_Windows']
         # Get a list of all the EC2 instances with the given tag key and value
         self.ec2_data = self.client_ec2.describe_instances(
             Filters= [
@@ -217,17 +211,20 @@ def send_notification(message, sns_arn, subject):
 def lambda_handler(event, context):
 
     _time = time.time()
+
+    role_arn = event['Role_ARN']
+    external_id = event['External_Id']
+
     creds = get_temp_creds(role_arn, external_id)
 
     if None in creds:
         logger.error("Security credentials couldn't be retrieved. Exiting...")
         exit()
 
-    # temp_var = []
     for region in REGIONS.values():
         try:
             try:
-                a = DesktopCentralInstaller(region, creds)
+                a = DesktopCentralInstaller(region, creds, event)
                 a.install_agent()
             except Exception as e:
                 logger.info("Error in installing Desktop Central agent in region {0}".format(region))
@@ -237,7 +234,7 @@ def lambda_handler(event, context):
             logger.info("Error in Lambda execution")
             logger.error(e)
 
-    sns_arn = os.environ['SNS_Topic']
+    sns_arn = event['SNS_Topic']
     subject = "Desktop central agent installation details on {0}".format(datetime.datetime.now().strftime("%Y-%m-%d"))
     message_id = send_notification(message, sns_arn, subject)
     logger.info("Message ID is {0}".format(message_id['MessageId']))
