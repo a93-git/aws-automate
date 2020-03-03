@@ -4,8 +4,6 @@
 ** No need to set up the environment variables
 
 {
-	"MaintenanceWindowTagValue": "<maintenanceWindowTagValue>",
-	"MaintenanceWindowTagKey": "<maintenanceWindowTagKey>",
 	"Group_ID": "<DSMGroupID>",
 	"RoleARN": "<RoleArnInCustomerAccount>",
 	"Output_S3_Bucket": "<OutputS3BucketNameMasterAccount>",
@@ -88,19 +86,13 @@ class DSMInstaller():
         self.script_url_linux = event['Script_Url_Linux']
         self.script_url_windows = event['Script_Url_Windows']
         self.group_id = event['Group_ID']
-        self.maintenance_window = event['MaintenanceWindowTagKey']
-        self.maintenance_window_val = event['MaintenanceWindowTagValue']
-        
+
         # Get a list of all the EC2 instances with the given tag key and value
         self.ec2_data = self.client_ec2.describe_instances(
             Filters= [
                 {
                     'Name': "tag:{0}".format(self.tag_key),
                     'Values': [self.tag_value]
-                },
-                {
-                    'Name': "tag:{0}".format(self.maintenance_window),
-                    'Values': [self.maintenance_window_val]
                 }
             ]
         )
@@ -209,18 +201,14 @@ def send_notification(message, sns_arn, subject):
     return message_id
 
 def lambda_handler(event, context):
-
     _time = time.time()
-    
-    role_arn = event['RoleARN']
+    role_arn = event['Role_ARN']
     external_id = event['External_Id']
     creds = get_temp_creds(role_arn, external_id)
-
     if None in creds:
         logger.error("Security credentials couldn't be retrieved. Exiting...")
         exit()
 
-    # temp_var = []
     for region in REGIONS.values():
         try:
             try:
@@ -239,4 +227,5 @@ def lambda_handler(event, context):
     message_id = send_notification(message, sns_arn, subject)
     logger.info("Message ID is {0}".format(message_id['MessageId']))
 
-    return "Total execution time: {0} seconds".format(time.time() - _time)
+    logger.info("Total execution time: {0} seconds".format(time.time() - _time))
+    return message
