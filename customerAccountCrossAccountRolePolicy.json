@@ -1,10 +1,13 @@
 {
-    "Version": "2012-10-17",
+    "Version": "ssmAccess",
     "Statement": [
         {
             "Sid": "VisualEditor0",
             "Effect": "Allow",
-            "Action": "ssm:SendCommand",
+            "Action": [
+                "ssm:SendCommand",
+                "ssm:GetCommandInvocation"
+            ],
             "Resource": "*"
         }
     ]
