@@ -94,20 +94,18 @@ class DesktopCentralInstaller():
         self.script_url_linux = event['Script_Url_Linux']
         self.script_url_windows = event['Script_Url_Windows']
 
-        self.tag2remote = dict(zip(self.tag_key, self.remote_office_id))
-        # Get a list of all the EC2 instances with the given tag key and value
-        self.ec2_data = {}
-        for val in self.tag2remote.keys():
-            self.ec2_data[val] = self.client_ec2.describe_instances(
+        self.tag2remote = dict(zip(self.tag_value, self.remote_office_id))
+
+    def get_ec2_data(self, tag_value):
+        ec2_data = self.client_ec2.describe_instances(
                 Filters= [
                     {
                         'Name': "tag:{0}".format(self.tag_key),
-                        'Values': [val]
+                        'Values': [tag_value]
                     }
                 ]
             )
-
-        print(self.ec2_data)
+        return ec2_data
 
     def send_command(self, instance_id, command, document_name, output_s3_key_prefix):
         try:
@@ -147,16 +145,20 @@ class DesktopCentralInstaller():
     def install_agent(self):
         message[self.region] = []
 
-        for key in self.ec2_data.keys():
+        for key in self.tag2remote.keys():
+            ec2_data = self.get_ec2_data(key)
             ec2_matching = []
-
-            for reservation in self.ec2_data[key]:
-                for instance in reservation['Instances']:
-                    if 'Platform' in instance.keys():
-                        ec2_matching.append((instance['InstanceId'], instance['Platform'], instance['State']['Name']))
-                    else:
-                        ec2_matching.append((instance['InstanceId'], instance['State']['Name']))
-            
+            try:
+                for reservation in ec2_data['Reservations']:
+                    for instance in reservation['Instances']:
+                        logger.info('Now here')
+                        if 'Platform' in instance.keys():
+                            ec2_matching.append((instance['InstanceId'], instance['Platform'], instance['State']['Name']))
+                        else:
+                            ec2_matching.append((instance['InstanceId'], instance['State']['Name']))
+            except Exception as e:
+                logger.info('Here')
+                logger.error(e)
             for x in ec2_matching:
                 if len(x) == 3:
                     if x[2] == 'running':
