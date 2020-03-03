@@ -1,14 +1,16 @@
 {
-    "Version": "2012-10-17",
+    "Version": "s3Access",
     "Statement": [
         {
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
                 "s3:PutObject",
-                "s3:PutObjectAcl"
+                "s3:PutObjectAcl",
+                "s3:GetObject",
+                "s3:GetObjectAcl"
             ],
-            "Resource": "arn:aws:s3:::<bucket_name>/<optional_prefix>/*"
+            "Resource": "arn:aws:s3:::<bucketName>/<prefix>"
         }
     ]
 }
