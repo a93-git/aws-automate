@@ -101,6 +101,7 @@ def lambda_handler(event, context):
         _agent_data = json.dumps(_payload.get(agent)).encode()
         function_name = AGENT2FUNCTION[agent]
 
+        logger.info(_agent_data)
         res = client_lambda.invoke(
             FunctionName=function_name,
             InvocationType='RequestResponse',
@@ -140,11 +141,12 @@ def lambda_handler(event, context):
                 logger.info('Error in parsing information for region {0}'.format(region))
                 logger.error(e)
 
-        remaining_time = context.get_remaining_time_in_millis()
+        remaining_time = int(context.get_remaining_time_in_millis())
 
         if remaining_time < 60000:
             logging.info("Out of time")
             logging.info("Invoking next instance of Lambda function")
             logging.info("Exit")
+            exit()
 
     return remaining_time
