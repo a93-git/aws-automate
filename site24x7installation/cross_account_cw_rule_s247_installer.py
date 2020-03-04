@@ -20,8 +20,8 @@ CW rule 'Configure Input' option. The JSON format is as below:
 	"Output_S3_Key_Prefix_Linux": "<folderPrefixForLinux>",
 	"Tag_Key": "<tagKey>",
 	"Tag_Value": "<tagValue>",
-	"External_Id": "57a2d9d9-37f0-4435-aadf-1257142f2bcc",
-	"SNS_Topic": "arn:aws:sns:ap-southeast-1:205041875266:lambda_notification"
+	"External_Id": "<externalID>",
+	"SNS_Topic": "<snsTopicARN>"
 }
 
 Note:
