@@ -185,7 +185,6 @@ def lambda_handler(event, context):
         get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context)
     
     for agent in _payload.keys():
-        time.sleep(60)
         if agent != 'CommandData' and agent != 'MasterLambda':
             _agent_data = json.dumps(_payload.get(agent)).encode()
             function_name = AGENT2FUNCTION[agent]
@@ -193,11 +192,8 @@ def lambda_handler(event, context):
             
             # Call another method to invoke agent installer lambda
             res = invoke_lambda_function(client_lambda, function_name, _agent_data)
-            
             streaming_body = res['Payload']
-            
             retval = json.loads(streaming_body.read().decode('utf-8'))
-    
             _payload_copy['CommandData'] = copy.deepcopy(retval)
             get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context)
             
