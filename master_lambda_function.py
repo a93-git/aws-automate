@@ -4,9 +4,10 @@ No environment variables (as of now)
 
 Set the timeout according to the normal time of execution of all the Lambda function
 
-DONE Implement a state function - tracks the current state of execution of all the four Lambda functions
-DONE Check for remaining execution time on a regular interval
-DONE If timeout occurs, call subsequent Lambda function with current state
+TODO Fix infinite self-invocation
+TODO Add function invocation id to the log data
+TODO Limit the number of concurrent executions
+TODO Set execution timeout for the agent installers
 
 Note: Now we need to add the following policy to the cross-account-role in Customer's environment
 
