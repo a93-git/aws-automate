@@ -4,6 +4,10 @@ No environment variables (as of now)
 
 Set the timeout according to the normal time of execution of all the Lambda function
 
+DONE Implement a state function - tracks the current state of execution of all the four Lambda functions
+DONE Check for remaining execution time on a regular interval
+DONE If timeout occurs, call subsequent Lambda function with current state
+
 Note: Now we need to add the following policy to the cross-account-role in Customer's environment
 
 ssm:GetInvocationStatus
@@ -97,7 +101,6 @@ def out_of_time(client_lambda, payload, context):
         logger.info('Invoking next instance of master lambda function with the payload data {0}'.format(payload_to_send))
         # invoke another lambda function here with the payload
         logging.info("Out of time")
-        logging.info("Invoking next instance of master lambda function")
         function_name = 'master_lambda_function_2'
         invoke_lambda_function(client_lambda, function_name, payload_to_send)
         logging.info("Exiting")
@@ -115,6 +118,7 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
             aws_session_token=creds[2])
 
         region_data = retval.get(region)
+
         try:
             if type(region_data) is list:
                 for instance_data in region_data:
@@ -160,6 +164,7 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
         except Exception as e:
             logger.info('Error in parsing information for region {0}'.format(region))
             logger.error(e)
+    return True
 
 def lambda_handler(event, context):
 
@@ -216,6 +221,7 @@ def lambda_handler(event, context):
                 _payload_copy.pop(agent)
                 logger.info("Payload copy now contains data for agents: {0}".format(_payload_copy.keys()))
                 if not get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context):
+                    logger.info("Ran out of time.")
                     return True #Exit the execution of Lambda function
     except Exception as e:
         logger.info("Exiting due to the below error")
