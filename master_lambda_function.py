@@ -4,10 +4,6 @@ No environment variables (as of now)
 
 Set the timeout according to the normal time of execution of all the Lambda function
 
-DONE Implement a state function - tracks the current state of execution of all the four Lambda functions
-DONE Check for remaining execution time on a regular interval
-DONE If timeout occurs, call subsequent Lambda function with current state
-
 Note: Now we need to add the following policy to the cross-account-role in Customer's environment
 
 ssm:GetInvocationStatus
@@ -32,6 +28,8 @@ FUNCTION_NAMES = ["x_account_site247_installer", "x_account_dc_installer", "x_ac
 AGENT2FUNCTION = dict(zip(AGENT_NAMES, FUNCTION_NAMES))
 
 SSM_COMMAND_PATTERN = re.compile(r'\b([a-z0-9]+-){4}[a-z0-9]{12}\b')
+
+_continue = True
 
 def get_temp_creds(role_arn, external_id):
     """ Retrieve temporary security credentials
@@ -78,7 +76,7 @@ def get_lambda_payload(secretname):
     return json.loads(response['SecretString'])
 
 def invoke_lambda_function(client_lambda, function_name, payload):
-    if function_name == 'master_lambda_function':
+    if function_name == 'master_lambda_function_2':
         res = client_lambda.invoke(
             FunctionName=function_name,
             InvocationType='Event',
@@ -95,17 +93,20 @@ def invoke_lambda_function(client_lambda, function_name, payload):
 def out_of_time(client_lambda, payload, context):
     remaining_time = int(context.get_remaining_time_in_millis())
     if remaining_time < 60000:
+        payload_to_send = payload
+        logger.info('Invoking next instance of master lambda function with the payload data {0}'.format(payload_to_send))
         # invoke another lambda function here with the payload
         logging.info("Out of time")
         logging.info("Invoking next instance of master lambda function")
-        function_name = 'master_lambda_function'
-        invoke_lambda_function(client_lambda, function_name, payload)
-        logging.info("Exit")
-        exit()
+        function_name = 'master_lambda_function_2'
+        invoke_lambda_function(client_lambda, function_name, payload_to_send)
+        logging.info("Exiting")
+        return False
     else:
-        pass
+        return True
 
 def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, context):
+    _continue = True
     for region in retval.keys():
         client_ssm = boto3.client('ssm', 
             region_name=region, 
@@ -114,7 +115,6 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
             aws_session_token=creds[2])
 
         region_data = retval.get(region)
-        region_data_copy = copy.deepcopy(region_data)
         try:
             if type(region_data) is list:
                 for instance_data in region_data:
@@ -127,9 +127,11 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                                 _count = 0
                                 while not (check_ssm_command_status(ssm_command_id, instance, client_ssm)):
                                     # check the remaining time
-                                    out_of_time(client_lambda, payload_copy, context)
-                                    time.sleep(5)
-                                    if _count < 24:
+                                    _continue = out_of_time(client_lambda, payload_copy, context)
+                                    if not _continue:
+                                        return False
+                                    time.sleep(10)
+                                    if _count < 12:
                                         _count += 1
                                     else:
                                         logging.info('Couldn\'t verify the status of command id {0}'.format(ssm_command_id))
@@ -139,18 +141,25 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                                         except:
                                             pass
                                         break
-                                # pop the command ID if it exists and the execution has finished
+                                # pop the command ID if it exists and the execution has finished or timedout
                                 try:
                                     payload_copy['CommandData'][region][region_data.index(instance_data)].pop(instance)
                                 except:
                                     pass
                                 logging.info('Command ID {0} execution finished'.format(ssm_command_id))
+                            if not _continue:
+                                break
+                try:
+                    logger.info("Removing command data for region {0}".format(region))
+                    payload_copy['CommandData'].pop(region)
+                    logger.info("Command data is now: {0}".format(payload_copy['CommandData']))
+                except:
+                    pass
+            else:
+                payload_copy['CommandData'].pop(region)
         except Exception as e:
             logger.info('Error in parsing information for region {0}'.format(region))
             logger.error(e)
-            raise
-
-        out_of_time(client_lambda, payload_copy, context)
 
 def lambda_handler(event, context):
 
@@ -180,21 +189,35 @@ def lambda_handler(event, context):
     external_id = _master_lambda_data.get('External_Id')
     creds = get_temp_creds(role_arn, external_id)
 
-    if 'CommandData' in _payload.keys():
-        retval = _payload.get("CommandData")
-        get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context)
-    
-    for agent in _payload.keys():
-        if agent != 'CommandData' and agent != 'MasterLambda':
-            _agent_data = json.dumps(_payload.get(agent)).encode()
-            function_name = AGENT2FUNCTION[agent]
-            logger.info(_agent_data)
-            
-            # Call another method to invoke agent installer lambda
-            res = invoke_lambda_function(client_lambda, function_name, _agent_data)
-            streaming_body = res['Payload']
-            retval = json.loads(streaming_body.read().decode('utf-8'))
-            _payload_copy['CommandData'] = copy.deepcopy(retval)
-            get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context)
-            
+    try:
+        if 'CommandData' in _payload.keys():
+            if len(list(_payload['CommandData'].keys())) == 0:
+                logger.info("CommandData is empty. Removing it.")
+                _payload.pop('CommandData')
+                logger.info("Current payload is {0}".format(_payload))
+            else:
+                retval = _payload.get("CommandData")
+                get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context)
+        
+        for agent in _payload.keys():
+            if agent != 'CommandData' and agent != 'MasterLambda':
+                _agent_data = json.dumps(_payload.get(agent)).encode()
+                function_name = AGENT2FUNCTION[agent]
+                logger.info(_agent_data)
+                
+                # Call another method to invoke agent installer lambda
+                res = invoke_lambda_function(client_lambda, function_name, _agent_data)
+                streaming_body = res['Payload']
+                retval = json.loads(streaming_body.read().decode('utf-8'))
+                _payload_copy['CommandData'] = copy.deepcopy(retval)
+                
+                # VERY IMPORTANT!!! Prevents the Lambda function from infinitely invoking itself
+                logger.info("Removing data for {0} agent".format(agent))
+                _payload_copy.pop(agent)
+                logger.info("Payload copy now contains data for agents: {0}".format(_payload_copy.keys()))
+                if not get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context):
+                    return True #Exit the execution of Lambda function
+    except Exception as e:
+        logger.info("Exiting due to the below error")
+        logger.error(e)
     return True
