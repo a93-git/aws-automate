@@ -101,7 +101,6 @@ def out_of_time(client_lambda, payload, context):
         payload_to_send = payload
         logger.info('Invoking next instance of master lambda function with the payload data {0}'.format(payload_to_send))
         # invoke another lambda function here with the payload
-        logging.info("Out of time")
         function_name = 'master_lambda_function_2'
         invoke_lambda_function(client_lambda, function_name, payload_to_send)
         logging.info("Exiting")
@@ -119,7 +118,6 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
             aws_session_token=creds[2])
 
         region_data = retval.get(region)
-
         try:
             if type(region_data) is list:
                 for instance_data in region_data:
@@ -127,6 +125,7 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                         # instance_data_keys = instance_data.keys()
                         for instance in instance_data.keys():
                             ssm_command_id = instance_data.get(instance)
+                            _st = True
                             match = re.fullmatch(SSM_COMMAND_PATTERN, ssm_command_id)
                             if match:
                                 _count = 0
@@ -136,10 +135,11 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                                     if not _continue:
                                         return False
                                     time.sleep(10)
-                                    if _count < 12:
+                                    if _count < 60:
                                         _count += 1
                                     else:
                                         logging.info('Couldn\'t verify the status of command id {0}'.format(ssm_command_id))
+                                        _st = False
                                         # pop the command ID as the execution state couldn't be verified
                                         try:
                                             payload_copy['CommandData'][region][region_data.index(instance_data)].pop(instance)
@@ -148,12 +148,12 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                                         break
                                 # pop the command ID if it exists and the execution has finished or timedout
                                 try:
+                                    logger.info("Removing the data for {0}".format(instance))
                                     payload_copy['CommandData'][region][region_data.index(instance_data)].pop(instance)
                                 except:
                                     pass
-                                logging.info('Command ID {0} execution finished'.format(ssm_command_id))
-                            if not _continue:
-                                break
+                                if _st:
+                                    logging.info('Command ID {0} execution finished'.format(ssm_command_id))
                 try:
                     logger.info("Removing command data for region {0}".format(region))
                     payload_copy['CommandData'].pop(region)
@@ -161,10 +161,16 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                 except:
                     pass
             else:
+                logger.info("Removing the empty region field for region {0}".format(region))
                 payload_copy['CommandData'].pop(region)
         except Exception as e:
             logger.info('Error in parsing information for region {0}'.format(region))
             logger.error(e)
+            # raise
+    # removes the CommandData section from the payload
+    logger.info("CommandData is now {0}".format(payload_copy["CommandData"]))
+    logger.info("Removing the CommandData section from the payload")
+    payload_copy.pop("CommandData")
     return True
 
 def lambda_handler(event, context):
