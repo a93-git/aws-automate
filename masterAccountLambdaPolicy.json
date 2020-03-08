@@ -37,6 +37,12 @@
                 "<Func3ARN>",
                 "<Func4ARN>"
             ]
+        },
+        {
+            "Sid": "secretsmanager",
+            "Effect": "Allow",
+            "Action": "secretsmanager:GetSecretValue",
+            "Resource": "arn:aws:secretsmanager:<region>:<account id master>:secret:*"
         }
     ]
 }
