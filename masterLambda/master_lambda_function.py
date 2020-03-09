@@ -61,9 +61,9 @@ def check_ssm_command_status(ssm_command_id, instance, client_ssm):
     )
 
     if response['Status'] == 'TimedOut' or response['Status'] == 'Success' or response['Status'] == 'Failed':
-        return True
+        return (True, response['Status'])
     else:
-        return False
+        return (False, None)
 
 def get_lambda_payload(secretname):
     client_session = boto3.session.Session()
@@ -102,7 +102,7 @@ def out_of_time(client_lambda, payload, context):
     else:
         return True
 
-def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, context):
+def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, context, agent_status_data, agent=None):
     _continue = True
     for region in retval.keys():
         client_ssm = boto3.client('ssm', 
@@ -110,8 +110,13 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
             aws_access_key_id=creds[0], 
             aws_secret_access_key=creds[1], 
             aws_session_token=creds[2])
-
+        
+        # Add the region key to agent_status_data dict
+        agent_status_data[agent][region] = {}
+        
         region_data = retval.get(region)
+        agent_status_data[agent][region] = {}
+        region_data_copy = copy.deepcopy(region_data)
         try:
             if type(region_data) is list:
                 for instance_data in region_data:
@@ -123,7 +128,8 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                             match = re.fullmatch(SSM_COMMAND_PATTERN, ssm_command_id)
                             if match:
                                 _count = 0
-                                while not (check_ssm_command_status(ssm_command_id, instance, client_ssm)):
+                                _current_command_status = False
+                                while not (_current_command_status):
                                     # check the remaining time
                                     _continue = out_of_time(client_lambda, payload_copy, context)
                                     if not _continue:
@@ -140,6 +146,16 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                                         except:
                                             pass
                                         break
+                                    _current_command_status = check_ssm_command_status(ssm_command_id, instance, client_ssm)[0]
+                                    
+                                    if _current_command_status is not None:
+                                        if _current_command_status[1] == 'TimedOut':
+                                            agent_status_data[agent][region][instance] = 2
+                                        elif _current_command_status[1] == 'Success':
+                                            agent_status_data[agent][region][instance] = 1
+                                        else:
+                                            agent_status_data[agent][region][instance] = 0
+                                
                                 # pop the command ID if it exists and the execution has finished or timedout
                                 try:
                                     logger.info("Removing the data for {0}".format(instance))
@@ -148,6 +164,9 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
                                     pass
                                 if _st:
                                     logging.info('Command ID {0} execution finished'.format(ssm_command_id))
+                            else:
+                                # If the data for instance id is not a valid SSM command ID
+                                agent_status_data[agent][region][instance] = 0
                 try:
                     logger.info("Removing command data for region {0}".format(region))
                     payload_copy['CommandData'].pop(region)
@@ -160,8 +179,7 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
         except Exception as e:
             logger.info('Error in parsing information for region {0}'.format(region))
             logger.error(e)
-            # raise
-    # removes the CommandData section from the payload
+    # Test the validity
     logger.info("CommandData is now {0}".format(payload_copy["CommandData"]))
     logger.info("Removing the CommandData section from the payload")
     payload_copy.pop("CommandData")
@@ -195,20 +213,30 @@ def lambda_handler(event, context):
     external_id = _master_lambda_data.get('External_Id')
     creds = get_temp_creds(role_arn, external_id)
 
+    # Initialize agent_status_data dict
+    agent_status_data = {}
+    
     try:
         if 'CommandData' in _payload.keys():
             if len(list(_payload['CommandData'].keys())) == 0:
                 logger.info("CommandData is empty. Removing it.")
                 _payload.pop('CommandData')
                 logger.info("Current payload is {0}".format(_payload))
+            # Pop the CommandData if it contains only agent name
+            elif len(list(_payload['CommandData'].keys())) == 1 and list(_payload['CommandData'].keys())[0] == 'AgentName':
+                logger.info("CommandData is empty. Removing it.")
+                _payload.pop('CommandData')
+                logger.info("Current payload is {0}".format(_payload))
             else:
                 retval = _payload.get("CommandData")
-                get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context)
+                get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context, agent_status_data, agent=_payload.get("CommandData").get("AgentName"))
         
         for agent in _payload.keys():
             if agent != 'CommandData' and agent != 'MasterLambda':
                 _agent_data = json.dumps(_payload.get(agent)).encode()
                 function_name = AGENT2FUNCTION[agent]
+                agent_status_data[agent] = {}
+                logger.info("Agent status data is {0}".format(agent_status_data))
                 logger.info(_agent_data)
                 
                 # Call another method to invoke agent installer lambda
@@ -217,14 +245,26 @@ def lambda_handler(event, context):
                 retval = json.loads(streaming_body.read().decode('utf-8'))
                 _payload_copy['CommandData'] = copy.deepcopy(retval)
                 
+                # Add the agent name to the command data
+                _payload_copy['CommandData']['AgentName'] = agent
+                
+                # Add the agent status data to the payload for next invocation
+                # Should we move it to the end??
+                _payload_copy['AgentStatusData'] = agent_status_data
+                
                 # VERY IMPORTANT!!! Prevents the Lambda function from infinitely invoking itself
                 logger.info("Removing data for {0} agent".format(agent))
                 _payload_copy.pop(agent)
                 logger.info("Payload copy now contains data for agents: {0}".format(_payload_copy.keys()))
-                if not get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context):
+                if not get_status_command_ids(retval, creds, _payload, _payload_copy, client_lambda, context, agent_status_data, agent=agent):
                     logger.info("Ran out of time.")
                     return True #Exit the execution of Lambda function
+                    
     except Exception as e:
         logger.info("Exiting due to the below error")
         logger.error(e)
+    logger.info('Payload contains the data: {0}'.format(_payload_copy))
+    logger.info('Calling the parser function')
+    # Call the agent status parser function
+    invoke_lambda_function(client_lambda, 'agent_data_parser', json.dumps(_payload_copy['AgentStatusData']).encode())
     return True
