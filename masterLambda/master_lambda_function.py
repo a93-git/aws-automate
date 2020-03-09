@@ -1,13 +1,7 @@
-""" One function to rule them all
-
+"""
 No environment variables (as of now)
 
 Set the timeout according to the normal time of execution of all the Lambda function
-
-TODO Fix infinite self-invocation
-TODO Add function invocation id to the log data
-TODO Limit the number of concurrent executions
-TODO Set execution timeout for the agent installers
 
 Note: Now we need to add the following policy to the cross-account-role in Customer's environment
 
