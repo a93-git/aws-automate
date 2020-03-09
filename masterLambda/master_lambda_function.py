@@ -116,7 +116,6 @@ def get_status_command_ids(retval, creds, payload, payload_copy, client_lambda, 
         
         region_data = retval.get(region)
         agent_status_data[agent][region] = {}
-        region_data_copy = copy.deepcopy(region_data)
         try:
             if type(region_data) is list:
                 for instance_data in region_data:
