@@ -1,4 +1,6 @@
-""" A script to install Site24x7 monitoring agent on the Windows and Linux EC2 instances 
+""" 
+**** WORKING VERSION !!! ****
+A script to install Site24x7 monitoring agent on the Windows and Linux EC2 instances 
 (matching a given pair of Tag key and value) in AWS environment
 
 ** Note that there is an additional tag key, value filter for maintenance window
@@ -14,7 +16,7 @@ CW rule 'Configure Input' option. The JSON format is as below:
 	"MaintenanceWindowTagValue": "<tagVlue>",
 	"MaintenanceWindowTagKey": "<tagKey>",
 	"Activation_Key": "<activationKey>",
-	"RoleARN": "<roleArnInCustomerAccount",
+	"Role_ARN": "<roleArnInCustomerAccount",
 	"Output_S3_Bucket": "<buckeName>",
 	"Output_S3_Key_Prefix_Windows": "<folderPrefixForWindows>",
 	"Output_S3_Key_Prefix_Linux": "<folderPrefixForLinux>",
@@ -223,7 +225,7 @@ def send_notification(message, sns_arn, subject):
 def lambda_handler(event, context):
     _time = time.time()
     
-    role_arn = event['RoleARN']
+    role_arn = event['Role_ARN']
     external_id = event['External_Id']
     
     creds = get_temp_creds(role_arn, external_id)
