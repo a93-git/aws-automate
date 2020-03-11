@@ -47,6 +47,8 @@ logger.setLevel(logging.INFO)
 
 message = {}
 
+
+
 def get_temp_creds(role_arn, external_id):
     """ Retrieve temporary security credentials
 
@@ -72,9 +74,10 @@ def get_temp_creds(role_arn, external_id):
 
 
 class Site24x7Installer():
-    """ Installs Site24x7 agent on all the instances having matching tag keys 
-    and values in all the enabled regions using the activation key provided
-    """
+    """ Installs Site24x7 agent on all the instances having matching tag keys and values in all the enabled regions using the activation key provided"""
+    
+
+#    cw_log_group_name = event['CW_Log_Group_Name']
 
     def __init__(self, region, creds, event):
         """ Instantiate the class, create ssm and ec2 clients and fetch the ec2 data for given tag keys and values
@@ -82,8 +85,7 @@ class Site24x7Installer():
         Arguments:
         region - AWS region in which to look for the resources
         creds - A tuple containing the access key ID, secret access key and a secret token
-        event - event data passed to the function
-        
+
         Return:
         None
         """
@@ -100,8 +102,7 @@ class Site24x7Installer():
         self.output_s3_bucket_name = event['Output_S3_Bucket']
         self.output_s3_key_prefix_linux = event['Output_S3_Key_Prefix_Linux']
         self.output_s3_key_prefix_windows = event['Output_S3_Key_Prefix_Windows']
-        self.maintenance_window = event['MaintenanceWindowTagKey']
-        self.maintenance_window_val = event['MaintenanceWindowTagValue']
+        
 
         # Get a list of all the EC2 instances with the given tag key and value
         self.ec2_data = self.client_ec2.describe_instances(
@@ -109,10 +110,6 @@ class Site24x7Installer():
                 {
                     'Name': "tag:{0}".format(self.tag_key),
                     'Values': [self.tag_value]
-                },
-                {
-                    'Name': "tag:{0}".format(self.maintenance_window),
-                    'Values': [self.maintenance_window_val]
                 }
             ]
         )
@@ -134,7 +131,7 @@ class Site24x7Installer():
                     'commands': [command]
                 },
                 OutputS3BucketName=self.output_s3_bucket_name,
-                OutputS3KeyPrefix=output_s3_key_prefix
+                OutputS3KeyPrefix=output_s3_key_prefix,
             )
             
             return retval
@@ -172,7 +169,7 @@ class Site24x7Installer():
                         output = "C:\\Windows\\Temp\\Site24x7WindowsAgent.msi"
                         service_name = "Site24x7 Windows Agent"
                         # No need to check if the service is already running because if it is, the script won't proceed with installation
-                        command = "If (Get-Service '" + service_name + "' ) { Restart-Service -Name '" + service_name + "'; echo 'Site24x7 agent is already installed on this machine. Restarting the agent.' } Else { echo 'Starting agent download...'; Start-Job -Name WebReq -ScriptBlock { Invoke-WebRequest -Uri " + url + " -OutFile " + output + " }; Wait-Job -Name WebReq; Test-Path " + output + " -PathType Leaf; msiexec.exe /i " + output + " EDITA1=" + self.activation_key + " ENABLESILENT=YES REBOOT=ReallySuppress /qn }"
+                        command = "If (Get-Service '" + service_name + "' ) { Restart-Service -Name '" + service_name + "'; echo 'Site24x7 agent is already installed on this machine. Restarting the agent.' } Else { echo 'we are in the else block'; Start-Job -Name WebReq -ScriptBlock { Invoke-WebRequest -Uri " + url + " -OutFile " + output + " }; Wait-Job -Name WebReq; Test-Path " + output + " -PathType Leaf; msiexec.exe /i " + output + " EDITA1=" + self.activation_key + " ENABLESILENT=YES REBOOT=ReallySuppress /qn }"
                         instance_id = x[0]
                         if self.check_ssm_status(instance_id):
                             retval = self.send_command(instance_id, command, document_name, self.output_s3_key_prefix_windows)
@@ -224,7 +221,7 @@ def send_notification(message, sns_arn, subject):
 
 def lambda_handler(event, context):
     _time = time.time()
-    
+
     role_arn = event['Role_ARN']
     external_id = event['External_Id']
     
@@ -249,9 +246,9 @@ def lambda_handler(event, context):
             logger.error(e)
     
     sns_arn = event['SNS_Topic']
-    subject = "Site24x7 agent installation details on {0}".format(datetime.datetime.now().strftime(r"%Y-%m-%d"))
+    subject = "Site24x7 agent installation details on {0}".format(datetime.datetime.now().strftime("%Y-%m-%d"))
     message_id = send_notification(message, sns_arn, subject)
     logger.info("Message ID is {0}".format(message_id['MessageId']))
 
-    return "Total execution time: {0} seconds".format(time.time() - _time)
-    
+    logger.info("Total execution time: {0} seconds".format(time.time() - _time))
+    return message
