@@ -9,7 +9,7 @@ ssm:GetInvocationStatus
 
 In the Lambda role, add the ARN of the master role as well so that it can invoke itself
 
-Change the function names in the FUNCTION_NAMES list 
+Change the function names in the FUNCTION_NAMES list and invoke lambda function section
 """
 
 import boto3
