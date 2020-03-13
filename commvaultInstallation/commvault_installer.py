@@ -114,7 +114,8 @@ class CommvaultInstaller():
                 DocumentVersion=self.document_version,
                 TimeoutSeconds=self.timeout_seconds,
                 Parameters={
-                    'commands': [command]
+                    'commands': [command],
+                    'executionTimeout': ['720']
                 },
                 OutputS3BucketName=self.output_s3_bucket_name,
                 OutputS3KeyPrefix=output_s3_key_prefix,
