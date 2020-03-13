@@ -1,30 +1,6 @@
-""" 
-**** WORKING VERSION !!! ****
-A script to install Site24x7 monitoring agent on the Windows and Linux EC2 instances 
-(matching a given pair of Tag key and value) in AWS environment
-
-** Note that there is an additional tag key, value filter for maintenance window
-** To set up the start of maintenance window we are using cloudwatch rules. No need to configure the end 
-of MW because the script timesout in 5 minutes or less. Also the timeout for SSM command is set to 2 mins
+""" A script to install Site24x7 monitoring agent on the Windows and Linux EC2 instances (matching a given pair of Tag key and value) in AWS environment
 
 ** SSM agent needs to be installed on all the instances where we want to install the agent**
-
-No need to set up any environment variables. All the required information for the invocation of this Lambda is provided by the 
-CW rule 'Configure Input' option. The JSON format is as below:
-
-{
-	"MaintenanceWindowTagValue": "<tagVlue>",
-	"MaintenanceWindowTagKey": "<tagKey>",
-	"Activation_Key": "<activationKey>",
-	"Role_ARN": "<roleArnInCustomerAccount",
-	"Output_S3_Bucket": "<buckeName>",
-	"Output_S3_Key_Prefix_Windows": "<folderPrefixForWindows>",
-	"Output_S3_Key_Prefix_Linux": "<folderPrefixForLinux>",
-	"Tag_Key": "<tagKey>",
-	"Tag_Value": "<tagValue>",
-	"External_Id": "<externalID>",
-	"SNS_Topic": "<snsTopicARN>"
-}
 
 Note:
     ** Set the timeout in basic settings to 5 minutes
@@ -128,7 +104,8 @@ class Site24x7Installer():
                 DocumentVersion=self.document_version,
                 TimeoutSeconds=self.timeout_seconds,
                 Parameters={
-                    'commands': [command]
+                    'commands': [command],
+                    'executionTimeout': ['720']
                 },
                 OutputS3BucketName=self.output_s3_bucket_name,
                 OutputS3KeyPrefix=output_s3_key_prefix,
