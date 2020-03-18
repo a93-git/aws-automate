@@ -39,6 +39,17 @@ def get_temp_creds(role_arn, external_id):
         return (None, None, None)
 
 def get_vms_with_tags(region, creds, NextToken):
+    """ Gets a list of VMs with matching tag keys
+
+    arguments:
+    region (str) - region in which to look for VMs
+    creds (tuple) - access key, secret access key and session token for client
+    NextToken - A token for paginated operations
+
+    return:
+    a dict with the return value of describe_instances operation
+    """
+
     client_ec2 = boto3.client('ec2', region_name=region, aws_access_key_id=creds[0], aws_secret_access_key=creds[1], aws_session_token=creds[2])
     
     if not NextToken:
@@ -62,6 +73,15 @@ def get_vms_with_tags(region, creds, NextToken):
     return res
 
 def check_ssm_status(client_ssm, vm_list):
+    """ Check the status of SSM agent on the list of given VMs
+
+    arguments:
+    client_ssm - boto3 ssm client
+    vm_list - list of VMs on which we need to check the SSM status
+
+    return:
+    A list of VMs with SSM ping status online
+    """
     _ssm_status_result = client_ssm.describe_instance_information(
         Filters=[
             {
@@ -77,6 +97,20 @@ def check_ssm_status(client_ssm, vm_list):
     return _ssm_status_result
 
 def send_command(client_ssm, vm_list, command, document_name, output_s3_key_prefix):
+    """ Sends SSM command 'command' to each of the VM in the 'vm_list'
+
+    arguments:
+    client_ssm - boto3 ssm client
+    vm_list - list of VMs on which we need to send the SSM command
+    command - Shell or powershell script that needs to be executed on the
+        target VMs
+    document_name - name of the document that needs to be executed
+        valid values - AWS-RunShellScript | AWS-RunPowerShellScript
+    output_s3_key_prefix - S3 bucket prefix
+
+    return:
+    A list of command IDs. If an error occurs, a list containing 'None' is returned
+    """
     try:
         retval = client_ssm.send_command(
             Targets=[
@@ -123,6 +157,15 @@ def lambda_handler(event, context):
                             else:
                                 ec2_matching.append((instance['InstanceId'], instance['State']['Name']))
                     retval = get_vms_with_tags(region, creds, retval['NextToken'])
+                try:
+                    for reservation in retval['Reservations']:
+                        for instance in reservation['Instances']:
+                            if 'Platform' in instance.keys():
+                                ec2_matching.append((instance['InstanceId'], instance['Platform'], instance['State']['Name']))
+                            else:
+                                ec2_matching.append((instance['InstanceId'], instance['State']['Name']))
+                except:
+                    continue
             else:
                 for reservation in retval['Reservations']:
                     for instance in reservation['Instances']:
@@ -163,7 +206,6 @@ def lambda_handler(event, context):
                     output_s3_key_prefix = output_s3_key_prefix_windows
                     command = 'ls' #check agent status
                     # _windows_retval = send_command(client_ssm, _batch_windows_instances_ssm_online, command, document_name, output_s3_key_prefix)
-                    
 
     else:
         logger.error('Couldn\'t retrieve credentials. Exiting')
