@@ -38,9 +38,11 @@
 		"Tag_Key": "swoAntiMalware",
 		"Tag_Value": "1",
 		"External_Id": "57a2d9d9-37f0-4435-aadf-1257142f2bcc",
-		"SNS_Topic": "arn:aws:sns:ap-southeast-1:205041875266:lambda_notification",
-		"Script_Url_Linux": "https://swomccpublicdev.blob.core.windows.net/trendmicro/New-AWS-Linux-Trend.sh",
-		"Script_Url_Windows": "https://swomccpublicdev.blob.core.windows.net/trendmicro/New-AWS-Windows-Trend.ps1"
+		"SNS_Topic": "<sns_topic_arn_master_account>",
+		"Script_Url_Linux": "<script_url_linux>",
+		"Script_Url_Windows": "<script_url_windows>",
+    	"Policy_ID_Linux": "25",
+    	"Policy_ID_Windows": "27"
 	},
 	"Commvault": {
 		"Activation_Key": "BF98BB27",
