@@ -14,9 +14,7 @@
 	"External_Id": "<externalId>",
 	"SNS_Topic": "<SNSTopicInMasterAccount>",
 	"Script_Url_Linux": "<scriptURLLinux>",
-	"Script_Url_Windows": "<scriptURLWindows>",
-	"Policy_ID_Linux": "<policy_id_linux>",
-	"Policy_ID_Windows": "<policy_id_windows>"
+	"Script_Url_Windows": "<scriptURLWindows>"
 }
 
 ** Note: SSM agent needs to be installed on all the target VMs
@@ -88,8 +86,6 @@ class DSMInstaller():
         self.script_url_linux = event['Script_Url_Linux']
         self.script_url_windows = event['Script_Url_Windows']
         self.group_id = event['Group_ID']
-        self.policy_id_linux = event['Policy_ID_Linux']
-        self.policy_id_windows = event['Policy_ID_Windows']
 
         # Get a list of all the EC2 instances with the given tag key and value
         self.ec2_data = self.client_ec2.describe_instances(
@@ -154,7 +150,7 @@ class DSMInstaller():
                     if x[1] == 'windows':
                         document_name = 'AWS-RunPowerShellScript'
                         output_s3_key_prefix = self.output_s3_key_prefix_windows
-                        command = "Invoke-WebRequest -Uri " + self.script_url_windows + " -OutFile C:/Windows.ps1; C:/windows.ps1 " + self.group_id + " " + self.policy_id_windows
+                        command = "Invoke-WebRequest -Uri " + self.script_url_windows + " -OutFile C:/Windows.ps1; C:/windows.ps1 " + self.group_id
                         instance_id = x[0]
                         if self.check_ssm_status(instance_id):
                             retval = self.send_command(instance_id, command, document_name, output_s3_key_prefix)
@@ -172,7 +168,7 @@ class DSMInstaller():
             elif x[1] == 'running':
                 document_name = 'AWS-RunShellScript'
                 output_s3_key_prefix = self.output_s3_key_prefix_linux
-                command = "curl -o /tmp/Trend.sh " + self.script_url_linux + "; sudo sed -i 's/\r//' /tmp/Trend.sh; bash /tmp/Trend.sh " + self.group_id + " " + self.policy_id_linux
+                command = "curl -o /tmp/Trend.sh " + self.script_url_linux + "; sudo sed -i 's/\r//' /tmp/Trend.sh; bash /tmp/Trend.sh " + self.group_id
                 instance_id = x[0]
                 if self.check_ssm_status(instance_id):
                     retval = self.send_command(instance_id, command, document_name, output_s3_key_prefix)
