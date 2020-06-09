@@ -33,8 +33,8 @@ def retrieve_log_file(bucketName, object_key):
         # TODO: Remove the hardcoded creds
         client_s3 = boto3.client(
             's3', 
-            aws_access_key_id='AKIAS7PLSXFBO2WZTTCA', 
-            aws_secret_access_key='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')
+            aws_access_key_id='None', 
+            aws_secret_access_key='None')
         response = client_s3.get_object(
             Bucket=bucketName,
             Key=object_key,
